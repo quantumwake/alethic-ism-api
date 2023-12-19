@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alethic-ismapi-deployment
+spec:
+  replicas: 1 
+  selector:
+    matchLabels:
+      app: alethic-ismapi
+  template:
+    metadata:
+      labels:
+        app: alethic-ismapi
+    spec:
+      containers:
+      - name: alethic-ismapi
+        image: <IMAGE>
+        envFrom:
+        - secretRef:
+            name: alethic-ismapi-secrets
+        ports:
+        - containerPort: 80
+        imagePullPolicy: Always
+      imagePullSecrets:
+      - name: regcred
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alethic-ismapi-service
+spec:
+  selector:
+    app: alethic-ismapi
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-alethic-ismapi
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://www.quantumwake.io, https://quantumwake.io, http://localhost:3000"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/cors-max-age: "600"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "PUT, GET, POST, DELETE"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+    - hosts:
+      - ismapi.quantumwake.io
+      secretName: ismapi.quantumwake.io
+  rules:
+    - host: ismapi.quantumwake.io
+      http:
+        paths:
+          - path: /asset/v1(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: alethic-ismapi-service
+                port:
+                  number: 80
+  ingressClassName: nginx

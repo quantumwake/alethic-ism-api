@@ -139,7 +139,7 @@ def get_message_routes(selector: str = None):
 def get_route_by_processor(processor_id: str) -> Route:
     available_routes = get_message_routes()
     if processor_id not in available_routes:
-        raise NotImplementedError(f'message routing is not defined for processor state id: {processor_state.id}, '
+        raise NotImplementedError(f'message routing is not defined for processor state id: {processor_id}, '
                                   f'please make sure to setup a route selector as part of the routing.yaml')
 
     return routes[processor_id]
