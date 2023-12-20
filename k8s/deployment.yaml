@@ -13,11 +13,15 @@ spec:
       labels:
         app: alethic-ism-api
     spec:
+      volumes:
+        - name: routing-config
+          configMap:
+            name: alethic-processor-routing-configmap
       containers:
       - name: alethic-ism-api
         image: <IMAGE>
         volumeMounts:
-          - name: alethic-processor-routing-configmap
+          - name: routing-config
             mountPath: /app/repos/routing.yaml
         envFrom:
         - secretRef:
