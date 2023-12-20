@@ -1,5 +1,8 @@
 # Stage 1: Base Image with Miniconda
-FROM continuumio/miniconda3 as base
+FROM continuumio/miniconda3
+#
+#RUN apt update -y \
+#    apt install uvicorn -y
 
 # Set the working directory
 WORKDIR /app
@@ -8,24 +11,35 @@ ARG CONDA_ISM_CORE_PATH
 ARG CONDA_ISM_DB_PATH
 ARG GITHUB_REPO_URL
 
-RUN git clone --depth 1 ${GITHUB_REPO_URL} repo
-RUN mkdir -p /app/conda/env/local_channel
+# copy the local channel packages (alethic-ism-core, alethic-ism-db)
+COPY ${CONDA_ISM_DB_PATH} .
+COPY ${CONDA_ISM_CORE_PATH} .
 
-# copy the alethic-ism-core and alethic-ism-db conda packages
-COPY ${CONDA_ISM_CORE_PATH} /app/conda/env/local_channel
-COPY ${CONDA_ISM_DB_PATH} /app/conda/env/local_channel
+# extract the local channel directories
+RUN tar -zxvf $CONDA_ISM_DB_PATH -C /
+RUN tar -zxvf $CONDA_ISM_CORE_PATH -C /
+
+# clone the api repo
+RUN git clone --depth 1 ${GITHUB_REPO_URL} repo
 
 # Move to the repository directory
 WORKDIR /app/repo
 
+COPY ./docker_extract_conda_package.sh .
+COPY ./docker_build_conda_package.sh .
+COPY ./environment.yaml .
+
 # Force all commands to run in bash
 SHELL ["/bin/bash", "--login", "-c"]
 
-# Add the pytorch channel (required for apple silicon)
-RUN conda config --add channels pytorch
+# install the conda build package in base
+RUN conda install -y conda-build
 
-# Initialize the conda environment specific to this build
-RUN conda env create -f environment.yml
+# reindex local channel
+RUN conda index /app/conda/env/local_channel
+
+# Initialize the conda environment
+RUN conda env create -f environment.yaml
 
 # Initialize conda in bash config files:
 RUN conda init bash
@@ -33,28 +47,34 @@ RUN conda init bash
 # Activate the environment, and make sure it's activated:
 RUN echo "conda activate alethic-ism-api" > ~/.bashrc
 
-# Install ISM core directly instead, instead of environment.yml
-RUN conda install /app/conda/env/local_channel/${CONDA_ISM_CORE_PATH}
-RUN conda install /app/conda/env/local_channel/${CONDA_ISM_DB_PATH}
+# display information about the current activation
+RUN conda info
 
-# Install Conda packages
-RUN conda install psycopg2 \
-    pydantic python-dotenv \
-    pulsar-client \
-    openai \
-    tenacity \
-    pyyaml \
-    uvicorn \
-    fastapi
+# Install necessary dependencies for the build process
+RUN conda install -y conda-build
 
-# Stage 2: Application Image
-FROM base as app
+#RUN conda clean --all -f -y
+RUN conda config --add channels conda-forge
+RUN conda config --set channel_priority strict
 
-WORKDIR /app/repo
+## Install Conda packages
+RUN conda install -y pulsar-client
 
-# Make port 80 available
+# display all packages installed
+RUN conda list
+
+# display uvicorn version
+RUN uvicorn --version
+
 EXPOSE 80
+
+COPY entrypoint.sh /usr/local/bin
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Set the entrypoint script to be executed
+ENTRYPOINT ["entrypoint.sh"]
 
 # Run Uvicorn when the container launches
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
+#CMD ["/bin/bash", "-c", "conda activate alethic-ism-api && exec uvicorn main:app --host 0.0.0.0 --port 80"]
 
