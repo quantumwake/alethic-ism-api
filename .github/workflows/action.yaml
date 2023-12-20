@@ -70,3 +70,23 @@ jobs:
       run: |
         echo "Pushing container file with tag $TAG"
         docker push $TAG
+
+    - name: Update deployment file
+      run: |
+        echo "Updating deployment file with tag $TAG"
+        sed -i "s|<IMAGE>|$TAG|" $GITHUB_WORKSPACE/k8s/deployment.yaml
+        cat $GITHUB_WORKSPACE/k8s/deployment.yaml
+
+    - name: Install doctl
+      uses: digitalocean/action-doctl@v2
+      with:
+        token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+    - name: Save DigitalOcean kubeconfig with short-lived credentials
+      run: doctl kubernetes cluster kubeconfig save --expiry-seconds 600 qwake-k8s-cluster
+
+    - name: Deploy to DigitalOcean Kubernetes
+      run: kubectl apply -f $GITHUB_WORKSPACE/k8s/deployment.yaml
+
+    - name: Verify deployment
+      run: kubectl rollout status deployment/alethic-ims-api-deployment
