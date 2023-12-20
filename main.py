@@ -164,6 +164,14 @@ def merge_instruction_template(template: InstructionTemplate) -> InstructionTemp
     state_storage.insert_template(instruction_template=template)
     return template
 
+@app.post('/template/text', tags=['Template'])
+def merge_instruction_template_text(template_path: str, template_content: str, template_type: str):
+    instruction = InstructionTemplate(
+        template_path=template_path,
+        template_content=template_content,
+        template_type=template_type
+    )
+    return merge_instruction_template(instruction)
 
 @app.get("/state/list", tags=["State"])
 async def get_states():
