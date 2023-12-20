@@ -30,11 +30,27 @@ jobs:
 
     - name: Build container image
       id: build_docker_image
-
       run: |
         echo "COMMIT ID: $COMMIT_ID"
         echo "DOCKER TAG: $TAG"
         
+        # fetch custom conda modules
+        AUTH_HEADER="Authorization: token ${{ secrets.ALETHIC_GITHUB_ACTION_PACKAGE_ACCESS_TOKEN }}"
+
+        # Fetch artifacts list from GitHub API and use jq to parse the JSON and find the artifact that matches the pattern
+        ARTIFACTS_JSON=$(curl -s "https://api.github.com/repos/quantumwake/alethic-ism-core/actions/artifacts")
+        ARTIFACT_NAME=$(echo $ARTIFACTS_JSON | jq -r '.artifacts[] | select(.name | test("alethic-ism-core_*.*.*_*.tar.gz")) | .name')
+        ARTIFACT_DOWNLOAD_URL=$(echo $ARTIFACTS_JSON | jq -r ".artifacts[] | select(.name == \"$ARTIFACT_NAME\") | .archive_download_url")
+        curl -H "$AUTH_HEADER" -L $ARTIFACT_DOWNLOAD_URL -o artifact_core.zip
+        unzip artifact_core.zip
+
+        # Fetch artifacts list from GitHub API and use jq to parse the JSON and find the artifact that matches the pattern
+        ARTIFACTS_JSON=$(curl -s "https://api.github.com/repos/quantumwake/alethic-ism-db/actions/artifacts")
+        ARTIFACT_NAME=$(echo $ARTIFACTS_JSON | jq -r '.artifacts[] | select(.name | test("alethic-ism-db_*.*.*_*.tar.gz")) | .name')
+        ARTIFACT_DOWNLOAD_URL=$(echo $ARTIFACTS_JSON | jq -r ".artifacts[] | select(.name == \"$ARTIFACT_NAME\") | .archive_download_url")
+        curl -H "$AUTH_HEADER" -L $ARTIFACT_DOWNLOAD_URL -o artifact_db.zip
+        unzip artifact_db.zip
+
         # build the docker image
         echo "Building with the fully qualified registry tag $TAG"
         ./docker_build_conda_package.sh $TAG
