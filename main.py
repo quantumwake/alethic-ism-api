@@ -27,15 +27,6 @@ ROUTING_CONFIG_FILE = os.environ.get("ROUTING_CONFIG_FILE", 'routing.yaml')
 root_path = os.environ.get("API_ROOT_PATH", None)
 
 
-def create_object_with_properties(properties):
-    class DynamicObject:
-        def __init__(self, **kwargs):
-            for key, value in kwargs.items():
-                setattr(self, key, value)
-
-    return DynamicObject(**properties)
-
-
 if root_path:
     app = FastAPI(root_path=root_path)
 else:
@@ -50,7 +41,6 @@ state_storage = ProcessorStateDatabaseStorage(database_url=DATABASE_URL)
 routes = {}
 message_config = {}
 
-
 def get_message_config(yaml_file: str = ROUTING_CONFIG_FILE):
     global message_config
     if message_config:
@@ -64,7 +54,13 @@ def get_message_config(yaml_file: str = ROUTING_CONFIG_FILE):
 
 
 def get_message_config_url(selector: str = None) -> str:
-    url = get_message_config()['url']
+    config = get_message_config()
+
+    url = MSG_URL
+    if 'url' in config:
+        url = config['url']
+
+    # iterate each topic and check for specific urls, if any
     _topics = get_message_topics()
 
     # check if url is strictly specified in the route

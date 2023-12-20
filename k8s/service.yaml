@@ -1,0 +1,43 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alethic-ism-api-service
+spec:
+  selector:
+    app: alethic-ism-api
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-alethic-ism-api
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://www.quantumwake.io, https://quantumwake.io, http://localhost:3000"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/cors-max-age: "600"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "PUT, GET, POST, DELETE"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+    - hosts:
+      - ism-api.quantumwake.io
+      secretName: ism-api.quantumwake.io
+  rules:
+    - host: ism-api.quantumwake.io
+      http:
+        paths:
+          - path: /asset/v1(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: alethic-ism-api-service
+                port:
+                  number: 80
+  ingressClassName: nginx

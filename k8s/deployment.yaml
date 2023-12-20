@@ -16,6 +16,9 @@ spec:
       containers:
       - name: alethic-ism-api
         image: <IMAGE>
+        volumeMounts:
+          - name: alethic-processor-routing-configmap
+            mountPath: /app/repos/routing.yaml
         envFrom:
         - secretRef:
             name: alethic-ism-api-secrets
