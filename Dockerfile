@@ -20,14 +20,15 @@ RUN tar -zxvf $CONDA_ISM_DB_PATH -C /
 RUN tar -zxvf $CONDA_ISM_CORE_PATH -C /
 
 # clone the api repo
-RUN git clone --depth 1 ${GITHUB_REPO_URL} repo
+#RUN git clone --depth 1 ${GITHUB_REPO_URL} repo
+ADD . /app/repo
 
 # Move to the repository directory
 WORKDIR /app/repo
-
-COPY ./docker_extract_conda_package.sh .
-COPY ./docker_build_conda_package.sh .
-COPY ./environment.yaml .
+#
+#COPY ./docker_extract_conda_package.sh .
+#COPY ./docker_build_conda_package.sh .
+#COPY ./environment.yaml .
 
 # Force all commands to run in bash
 SHELL ["/bin/bash", "--login", "-c"]
