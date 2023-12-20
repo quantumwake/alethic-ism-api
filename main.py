@@ -5,11 +5,9 @@ import os
 import pulsar
 import dotenv
 
-from core.processor_state import InstructionTemplate, State
-from db.model import ProcessorState, Processor, ProcessorStatus
+from core.processor_state import InstructionTemplate, State, ProcessorStatus
+from core.processor_state_storage import Processor, ProcessorState
 from db.processor_state_db import ProcessorStateDatabaseStorage
-from pydantic import BaseModel
-
 from exceptions import CustomException, custom_exception_handler
 
 from typing import Optional, List, Union, Any
