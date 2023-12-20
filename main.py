@@ -41,6 +41,7 @@ state_storage = ProcessorStateDatabaseStorage(database_url=DATABASE_URL)
 routes = {}
 message_config = {}
 
+
 def get_message_config(yaml_file: str = ROUTING_CONFIG_FILE):
     global message_config
     if message_config:

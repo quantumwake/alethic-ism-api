@@ -22,7 +22,7 @@ spec:
         image: <IMAGE>
         volumeMounts:
           - name: routing-config
-            mountPath: /app/repos/routing.yaml
+            mountPath: /app/repo/routing.yaml
         envFrom:
         - secretRef:
             name: alethic-ism-api-secrets
