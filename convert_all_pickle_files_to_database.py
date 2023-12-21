@@ -58,18 +58,27 @@ for state_file, state in states.items():
 
         return template_config_path
 
-
     if isinstance(state.config, StateConfigLM):
         state.config.user_template_path = update_content_path_if_any(state.config.user_template_path)
         state.config.system_template_path = update_content_path_if_any(state.config.system_template_path)
 
-
     for key_definition in state.config.primary_key:
-        key_definition.required = False if 'required' not in key_definition.__dict__ else key_definition.required
+        key_definition.required = False \
+            if 'required' not in key_definition.__dict__ \
+            else key_definition.required
 
     for key_definition in state.config.query_state_inheritance:
-        key_definition.required = False if 'required' not in key_definition.__dict__ else key_definition.required
+        key_definition.required = False \
+            if 'required' not in key_definition.__dict__ \
+            else key_definition.required
 
-    storage = ProcessorStateDatabaseStorage(database_url=DATABASE_URL)
-    storage.save_state(state)
+    # storage = ProcessorStateDatabaseStorage(database_url=DATABASE_URL)
+    # storage.save_state(state)
+
+    state_file_basename = os.path.basename(state_file)
+    state_file_basename = state_file_basename.replace('.pickle', '.json')
+    output_path = f'./archive_states/{state_file_basename}'
+    # state.save_state()
+    with open(output_path, 'w') as fio:
+        fio.write(state.model_dump_json(indent=4))
 
