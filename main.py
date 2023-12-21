@@ -7,7 +7,8 @@ import dotenv
 
 from core.processor_state import InstructionTemplate, State, ProcessorStatus
 from core.processor_state_storage import Processor, ProcessorState
-from db.processor_state_db import ProcessorStateDatabaseStorage
+from db.processor_state_db_storage import ProcessorStateDatabaseStorage
+
 from exceptions import CustomException, custom_exception_handler
 
 from typing import Optional, List, Union, Any
