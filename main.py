@@ -190,8 +190,8 @@ async def merge_state(state: State) -> Optional[State]:
     return state
 
 
-@app.get("/template/{template_path}", tags=["Template"])
-def get_instruction_templates(template_path: str) -> Optional[InstructionTemplate]:
+@app.get("/template", tags=["Template"])
+def get_instruction_template(template_path: str) -> Optional[InstructionTemplate]:
     return state_storage.fetch_template(template_path=template_path)
 
 
