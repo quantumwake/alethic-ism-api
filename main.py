@@ -185,10 +185,10 @@ async def get_state(state_id: str) -> Optional[State]:
 
 
 @app.post("/state", tags=["State"])
-async def merge_state(state: State) -> Optional[State]:
+async def merge_state(state: State) -> str:
     state_id = state_storage.save_state(state=state)
-    state = state_storage.load_state(state_id=state_id)
-    return state
+    state_storage.load_state(state_id=state_id)
+    return state_id
 
 
 @app.get("/template", tags=["Template"])
