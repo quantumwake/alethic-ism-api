@@ -8,6 +8,7 @@ dependencies:
   - python=3.11
   - python-dotenv
   - psycopg2
+  - python-multipart
 #  - pulsar-client
   - pyyaml
   - fastapi

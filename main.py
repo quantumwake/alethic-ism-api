@@ -1,4 +1,5 @@
 import logging
+import uuid
 
 import yaml
 import os
@@ -7,13 +8,17 @@ import dotenv
 
 from core.processor_state import InstructionTemplate, State, ProcessorStatus
 from core.processor_state_storage import Processor, ProcessorState
+from db.models import WorkflowNode, WorkflowEdge, UserProject
 from db.processor_state_db_storage import ProcessorStateDatabaseStorage
+from starlette.middleware.cors import CORSMiddleware
 
 from exceptions import CustomException, custom_exception_handler
 
 from typing import Optional, List, Union, Any
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
 from pulsar.schema import schema
+
+from models import WorkflowEdgeDelete
 
 dotenv.load_dotenv()
 
@@ -30,6 +35,25 @@ if root_path:
     app = FastAPI(root_path=root_path)
 else:
     app = FastAPI()
+
+origins = [
+    "http://localhost",
+    "https://localhost",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1",
+    "https://127.0.0.1:3000",
+    "https://127.0.0.1",
+    "https://localhost:3000",
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Register the custom exception handler
 app.add_exception_handler(CustomException, custom_exception_handler)
@@ -155,10 +179,9 @@ def send_message(producer, msg):
             pass
 
 
-@app.get("/templates", tags=["Template"])
-def get_instruction_templates() -> Optional[List[InstructionTemplate]]:
-    return state_storage.fetch_templates()
-
+@app.get("/template", tags=["Template"])
+def get_instruction_template(template_id: str) -> Optional[InstructionTemplate]:
+    return state_storage.fetch_template(template_id=template_id)
 
 @app.post('/template', tags=['Template'])
 def merge_instruction_template(template: InstructionTemplate) -> InstructionTemplate:
@@ -166,17 +189,27 @@ def merge_instruction_template(template: InstructionTemplate) -> InstructionTemp
     return template
 
 @app.post('/template/text', tags=['Template'])
-def merge_instruction_template_text(template_path: str, template_content: str, template_type: str):
+def merge_instruction_template_text(template_id: str,
+                                    template_path: str,
+                                    template_content: str,
+                                    template_type: str,
+                                    project_id: str = None):
+
+    # create an instruction template object
     instruction = InstructionTemplate(
+        template_id=template_id,
         template_path=template_path,
         template_content=template_content,
-        template_type=template_type
+        template_type=template_type,
+        project_id=project_id
     )
+
     return merge_instruction_template(instruction)
 
 @app.get("/state/list", tags=["State"])
-async def get_states():
-    return state_storage.fetch_states()
+async def get_states() -> []:
+    states = state_storage.fetch_states()
+    return states
 
 
 @app.get('/state/{state_id}', tags=['State'])
@@ -191,18 +224,77 @@ async def merge_state(state: State) -> str:
     return state_id
 
 
-@app.get("/template", tags=["Template"])
-def get_instruction_template(template_path: str) -> Optional[InstructionTemplate]:
-    return state_storage.fetch_template(template_path=template_path)
+@app.post("/state/data/upload")
+async def upload_file(file: UploadFile = File(...)):
+    try:
+        contents = await file.read()
 
+        return {"message": "File uploaded successfully"}
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.get("/processor/{processor_id}", tags=["Processor"])
 def get_processor(processor_id: str) -> Optional[Processor]:
     return state_storage.fetch_processor(processor_id=processor_id)
 
+@app.get("/project/{project_id}/templates", tags=["Projects"])
+def get_instruction_templates(project_id: str) -> Optional[List[InstructionTemplate]]:
+    return state_storage.fetch_templates(project_id=project_id)
+
+@app.get("/project/{user_id}/list", tags=["Projects"])
+async def fetch_projects(user_id: str) -> Optional[List[UserProject]]:
+    return state_storage.fetch_user_projects(user_id=user_id)
+
+
+@app.get("/project/{project_id}/templates", tags=["Projects"])
+async def fetch_projects(project_id: str) -> Optional[List[UserProject]]:
+    return state_storage.fetch_user_projects(project_id=project_id)
+
+
+
+@app.post("/project/create", tags=["Projects"])
+async def create_project(user_project: UserProject) -> Optional[UserProject]:
+    user_project.project_id = str(uuid.uuid4())
+    return state_storage.insert_user_project(user_project=user_project)
+
+
+@app.get("/workflow/{project_id}/node/list", tags=["Workflows"])
+async def fetch_workflow_nodes(project_id: str) -> Optional[List[WorkflowNode]]:
+    return state_storage.fetch_workflow_nodes(project_id=project_id)
+
+
+@app.get("/workflow/{project_id}/edge/list", tags=["Workflows"])
+async def fetch_workflow_edges(project_id: str) -> Optional[List[WorkflowEdge]]:
+    return state_storage.fetch_workflow_edges(project_id=project_id)
+
+
+@app.post("/workflow/node/create", tags=["Workflows"])
+async def create_workflow_node(node: WorkflowNode) -> Optional[WorkflowNode]:
+    if not node.node_id:
+        node.node_id = str(uuid.uuid4())
+
+    return state_storage.insert_workflow_node(node=node)
+
+
+@app.delete("/workflow/node/{node_id}/delete", tags=["Workflows"])
+async def delete_workflow_node(node_id: str) -> None:
+    state_storage.delete_workflow_node(node_id=node_id)
+
+
+@app.post("/workflow/edge/create", tags=["Workflows"])
+async def create_workflow_edge(edge: WorkflowEdge) -> Optional[WorkflowEdge]:
+    return state_storage.insert_workflow_edge(edge=edge)
+
+
+@app.delete("/workflow/edge/delete", tags=["Workflows"])
+async def delete_workflow_edge(edge: WorkflowEdgeDelete) -> None:
+    state_storage.delete_workflow_edge(
+        source_node_id=edge.source_node_id,
+        target_node_id=edge.target_node_id)
+
 
 @app.get("/processors", tags=["Processor"])
-def get_processors() -> Optional[List[Processor]]:
+async def get_processors() -> Optional[List[Processor]]:
     return state_storage.fetch_processors()
 
 
