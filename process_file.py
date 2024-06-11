@@ -23,13 +23,8 @@ async def process_csv_stream(state: State, io: StringIO):
         # Create a dictionary of key-value pairs for the current row
         query_state = {key: value for key, value in zip(header, row)}
 
-        # apply the response query state to the output state
-        state.apply_columns(query_state=query_state)
-
-        # Apply the row data to the state
-        state.apply_row_data(query_state=query_state)
-
-        # state.
+        # apply the query state to the state set
+        state.apply_query_state(query_state=query_state)
 
     return state
 

@@ -1,26 +1,55 @@
 import io
 from typing import Optional
-from core.processor_state import State
+from core.processor_state import State, StateDataKeyDefinition
 from fastapi import UploadFile, File, APIRouter
-from environment import state_storage
+from environment import storage
+from http_exceptions import check_null_response
 from process_file import process_csv_stream
+
 
 state_router = APIRouter()
 
+
 @state_router.get('/{state_id}')
+@check_null_response
 async def fetch_state(state_id: str, load_data: bool = False) -> Optional[State]:
-    return state_storage.load_state(state_id=state_id, load_data=load_data)
+    return storage.load_state(state_id=state_id, load_data=load_data)
 
 
 @state_router.post("/create")
+@check_null_response
 async def merge_state(state: State) -> State:
-    return state_storage.save_state(state=state)
+    return storage.save_state(state=state, options={
+        "force_update_column": True
+    })
+
+
+@state_router.delete('/{state_id}/data')
+@check_null_response
+async def delete_state_data(state_id: str) -> int:
+    result = storage.delete_state_data(state_id=state_id)
+    return 1
+
+
+@state_router.delete("/{state_id}/config/{definition_type}/{id}")
+@check_null_response
+async def delete_config_definition(state_id: str, definition_type: str, id: str) -> int:
+    return storage.delete_state_config_key_definition(
+        state_id=state_id,
+        definition_type=definition_type,
+        definition_id=id
+    )
+
+
+    # return storage.save_state(state=state, options={
+    #     "force_update_column": True
+    # })
 
 
 @state_router.post("/{state_id}/data/upload")
 async def upload_file(state_id: str, file: UploadFile = File(...)):
     try:
-        state = state_storage.load_state(state_id=state_id)
+        state = storage.load_state(state_id=state_id)
 
         if not state:
             raise KeyError(f"unable to locate state id {state_id}")
@@ -28,7 +57,7 @@ async def upload_file(state_id: str, file: UploadFile = File(...)):
         data = await file.read()
         text_data = io.StringIO(data.decode('utf-8'))
         state = await process_csv_stream(state=state, io=text_data)
-        state = state_storage.save_state(state=state)
+        state = storage.save_state(state=state)
 
         return {
             "status": "success",
@@ -38,4 +67,10 @@ async def upload_file(state_id: str, file: UploadFile = File(...)):
         }
     except Exception as e:
         return {"status": "error", "message": str(e), "count": 0}
+
+
+@state_router.get('/{state_id}/processors')
+@check_null_response
+async def fetch(state_id: str):
+    return storage.fetch_processor_state(state_id=state_id)
 

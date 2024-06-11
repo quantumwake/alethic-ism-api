@@ -1,122 +1,65 @@
-import logging
+import json
+from core.base_message_router import Router, RouteMessageStatus
+from core.pulsar_message_producer_provider import PulsarMessagingProducerProvider
+from fastapi import UploadFile, File, APIRouter
+from pydantic import ValidationError
 
-import pulsar
-import yaml
-
-from typing import Union
-from pulsar.schema import schema
-from environment import MSG_URL, ROUTING_CONFIG_FILE
-
-
-def get_message_config(yaml_file: str = ROUTING_CONFIG_FILE):
-    global message_config
-    if message_config:
-        return message_config
-
-    with open(yaml_file, 'r') as file:
-        message_config = yaml.safe_load(file)
-        message_config = message_config['messageConfig']
-
-    return message_config
+from environment import storage
+from http_exceptions import check_null_response
 
 
-def get_message_config_url(selector: str = None) -> str:
-    config = get_message_config()
-
-    url = MSG_URL
-    if 'url' in config:
-        url = config['url']
-
-    # iterate each topic and check for specific urls, if any
-    _topics = get_message_topics()
-
-    # check if url is strictly specified in the route
-    specific_url = [topic['url'] for topic in _topics
-                    if 'url' in topic
-                    and selector in topic['selector']]
-
-    specific_url = specific_url[0] if specific_url else None
-
-    # return route specific url, otherwise general
-    return specific_url if specific_url else url
+message_provider = PulsarMessagingProducerProvider()
+message_router = Router(
+    provider=message_provider,
+    yaml_file="routing.yaml"
+)
+route_router = APIRouter()
 
 
-class Route:
+@route_router.post('/{state_id}/forward/entry')
+@check_null_response
+async def route_forward_query_state_entry(state_id: str, query_state_entry: dict) -> RouteMessageStatus:
+    state = storage.fetch_state(state_id=state_id)
+    if not state:
+        raise ValidationError(f'input state id {state_id} does not exist')
+    project = storage.fetch_user_project(state.project_id)
 
-    client: Union[pulsar.Client]
-    process: Union[pulsar.Producer, pulsar.Consumer]
-    manage: Union[pulsar.Producer, pulsar.Consumer]
+    # create a message envelop for the query state
+    message = {
+        "user_id": project.user_id if project else None,
+        "project_id": project.project_id if project else None,
+        "type": "query_state_entry",
+        "input_state_id": state_id,
+        "query_state": [
+            query_state_entry
+        ]
+    }
 
-    def __init__(self, topic: dict):
-
-        # routing configuration
-        self.selector = topic['selector']
-        self.process_topic = topic['process_topic']
-        self.manage_topic = topic['manage_topic']
-        self.subscription = topic['subscription']
-        self.url = get_message_config_url(self.selector)
-
-        # routing client used to actual produce/consume data
-        self.client = pulsar.Client(self.url)
-        self.process = self.client.create_producer(
-            self.process_topic,
-            schema=schema.StringSchema()
-        )
-
-        self.manage = self.client.create_producer(
-            self.manage_topic,
-            schema=schema.StringSchema()
-        ) if self.manage_topic else None
+    # convert to a string object for submission to the pub system
+    message_string = json.dumps(message)
+    status = message_router.send_message("state/router", message_string)
+    return status
 
 
-def get_message_topics():
-    return get_message_config()['topics']
+@route_router.post('/{state_id}/{processor_id}/forward/complete')
+@check_null_response
+async def route_forward_complete_state(state_id: str, processor_id: str) -> RouteMessageStatus:
 
+    state = storage.fetch_state(state_id=state_id)
+    if not state:
+        raise ValidationError(f'input state id {state_id} does not exist')
+    project = storage.fetch_user_project(state.project_id)
 
-def get_message_topic(topic: str):
-    topics = get_message_topics()
-    topic = topics[topic] if topic in topics else None
+    # create a message envelop for running a complete state forward
+    message = {
+        "user_id": project.user_id if project else None,
+        "project_id": project.project_id if project else None,
+        "type": "query_state_complete",
+        "input_state_id": state_id,
+        "processor_id": processor_id
+    }
 
-    if topic:
-        return topic
-
-    logging.error(f'invalid topic name: {topic} requested from topics: {topics}')
-    return None
-
-
-def get_message_routes(selector: str = None):
-    global routes
-
-    if not routes:
-        routes = {
-            topic['selector']: Route(topic)
-            for topic in get_message_topics()
-        }
-
-    if selector:
-        return routes[selector]
-    else:
-        return routes
-
-
-def get_route_by_processor(processor_id: str) -> Route:
-    available_routes = get_message_routes()
-    if processor_id not in available_routes:
-        raise NotImplementedError(f'message routing is not defined for processor state id: {processor_id}, '
-                                  f'please make sure to setup a route selector as part of the routing.yaml')
-
-    return routes[processor_id]
-
-
-def send_message(producer, msg):
-    try:
-        producer.send(msg, None)
-    except Exception as e:
-        print("Failed to send message: %s", e)
-        raise e
-    finally:
-        try:
-            producer.flush()
-        except:
-            pass
-
+    # convert to a string object for submission to the pub system
+    message_string = json.dumps(message)
+    status = message_router.send_message("state/router", message_string)
+    return status

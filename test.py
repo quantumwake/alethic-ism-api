@@ -1,4 +1,6 @@
 import pickle
+
+from core.base_model import StatusCode
 from core.processor_state import (
     State,
     StateConfig,
@@ -8,7 +10,6 @@ from core.processor_state import (
     StateDataRowColumnData,
     StateDataColumnIndex,
     StateDataKeyDefinition,
-    ProcessorStatus,
     InstructionTemplate
 )
 
@@ -35,7 +36,7 @@ class CustomUnpickler(pickle.Unpickler):
             elif 'StateDataKeyDefinition' == name:
                 return StateDataKeyDefinition
             elif 'ProcessorStatus' == name:
-                return ProcessorStatus
+                return StatusCode
             elif 'InstructionTemplate' == name:
                 return InstructionTemplate
 

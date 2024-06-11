@@ -1,7 +1,7 @@
 import os
 
 import dotenv
-from db.processor_state_db_storage import ProcessorStateDatabaseStorage
+from db.processor_state_db_storage import ProcessorStateDatabaseStorage, PostgresDatabaseStorage
 
 dotenv.load_dotenv()
 
@@ -15,6 +15,6 @@ API_ROOT_PATH = os.environ.get("API_ROOT_PATH", None)
 
 
 # setup the storage device for managing state, state configs, templates, models and so forth
-state_storage = ProcessorStateDatabaseStorage(database_url=DATABASE_URL)
+storage = PostgresDatabaseStorage(database_url=DATABASE_URL)
 
 

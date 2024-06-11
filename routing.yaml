@@ -1,29 +1,14 @@
 messageConfig:
-    url: pulsar://localhost:6650
-    topics:
-      - process_topic: ism_openai_qa
-        manage_topic: ism_openai_qa_manage
-        subscription: ism_openai_qa_subscription
-        selector: language/models/openai/gpt-4-1106-preview
+    root_route:
+      topic: ism_general
+      manage_topic: ism_general_manage
+      subscription: ism_general_subscription
+      service_url: pulsar://localhost:6650
 
-      - process_topic: ism_anthropic_qa
-        manage_topic: ism_anthropic_qa_manage
-        subscription: ism_anthropic_qa_subscription
-        selector: language/models/anthropic/claude-2.0
-
-      - process_topic: ism_anthropic_qa
-        manage_topic: ism_anthropic_qa_manage
-        subscription: ism_anthropic_qa_subscription
-        selector: language/models/anthropic/claude-2.1
-
-      - process_topic: ism_database_routing_topic
-        manage_topic: ism_database_routing_manage
-        subscription: ism_database_routing_subscription
-        selector: database/loader/postgresql
-
-      - process_topic: ism_join_full_routing_topic
-        manage_topic: ism_join_full_routing_manage
-        subscription: ism_join_full_routing_subscription
-        selector: join/full
-
+    topic_routes:
+      - selector: state/router
+        topic: ism_state_router
+#        manage_topic: ism_openai_qa_manage
+        subscription: ism_state_router_subscription
+        service_url: pulsar://localhost:6650
 

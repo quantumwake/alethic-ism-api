@@ -9,7 +9,8 @@ dependencies:
   - python-dotenv
   - psycopg2
   - python-multipart
-#  - pulsar-client
+  - pulsar-client
+  - restrictedpython
   - pyyaml
   - fastapi
   - pydantic
