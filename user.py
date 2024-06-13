@@ -1,3 +1,4 @@
+import os
 from typing import Optional, List
 
 import firebase_admin
@@ -16,7 +17,7 @@ user_router = APIRouter()
 #  seems a bit heavy especiailly given that the firebase
 #  api does not have a conda package
 
-firebase_credential_path = "/Users/kasrarasaee/quantum-ism-firebase-adminsdk-vnxbq-699289861f.json"
+firebase_credential_path = os.environ.get("FIREBASE_CREDENTIALS_JSON_FILE", ".firebase-credentials.json")
 firebase_credential = credentials.Certificate(firebase_credential_path)
 default_app = firebase_admin.initialize_app(credential=firebase_credential)
 

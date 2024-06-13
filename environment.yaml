@@ -11,6 +11,7 @@ dependencies:
   - python-multipart
   - pulsar-client
   - restrictedpython
+# via pip  - firebase-admin
   - pyyaml
   - fastapi
   - pydantic

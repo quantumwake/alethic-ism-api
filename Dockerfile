@@ -9,7 +9,7 @@ WORKDIR /app
 
 ARG CONDA_ISM_CORE_PATH
 ARG CONDA_ISM_DB_PATH
-ARG GITHUB_REPO_URL
+#ARG GITHUB_REPO_URL
 
 # copy the local channel packages (alethic-ism-core, alethic-ism-db)
 COPY ${CONDA_ISM_DB_PATH} .
@@ -25,13 +25,17 @@ ADD . /app/repo
 
 # Move to the repository directory
 WORKDIR /app/repo
-#
+
 #COPY ./docker_extract_conda_package.sh .
 #COPY ./docker_build_conda_package.sh .
 #COPY ./environment.yaml .
 
 # Force all commands to run in bash
 SHELL ["/bin/bash", "--login", "-c"]
+
+
+# delete any specific configuration file tied to the current build environment
+RUN rm -rf .*
 
 # install the conda build package in base
 RUN conda install -y conda-build
@@ -60,6 +64,9 @@ RUN conda config --set channel_priority strict
 
 ## Install Conda packages
 RUN conda install -y pulsar-client
+
+## Manually install firebase admin since it is not part of conda channels
+RUN pip install firebase-admin
 
 # display all packages installed
 RUN conda list
