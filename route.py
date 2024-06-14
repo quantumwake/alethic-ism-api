@@ -1,15 +1,12 @@
 import json
-import os
 
 from core.base_message_router import Router, RouteMessageStatus
 from core.pulsar_message_producer_provider import PulsarMessagingProducerProvider
-from fastapi import UploadFile, File, APIRouter
+from fastapi import APIRouter
 from pydantic import ValidationError
 
-from environment import storage
+from environment import storage, ROUTING_FILE
 from http_exceptions import check_null_response
-
-ROUTING_FILE = os.environ.get("ROUTING_FILE", '.routing.yaml')
 
 message_provider = PulsarMessagingProducerProvider()
 message_router = Router(

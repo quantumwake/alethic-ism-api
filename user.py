@@ -1,4 +1,3 @@
-import os
 from typing import Optional, List
 
 import firebase_admin
@@ -8,7 +7,7 @@ from core.utils import general_utils
 from fastapi import APIRouter
 from firebase_admin import auth, credentials
 
-from environment import storage
+from environment import storage, FIREBASE_CREDENTIALS_JSON_FILE
 from http_exceptions import check_null_response
 
 user_router = APIRouter()
@@ -17,8 +16,7 @@ user_router = APIRouter()
 #  seems a bit heavy especiailly given that the firebase
 #  api does not have a conda package
 
-firebase_credential_path = os.environ.get("FIREBASE_CREDENTIALS_JSON_FILE", ".firebase-credentials.json")
-firebase_credential = credentials.Certificate(firebase_credential_path)
+firebase_credential = credentials.Certificate(FIREBASE_CREDENTIALS_JSON_FILE)
 default_app = firebase_admin.initialize_app(credential=firebase_credential)
 
 @user_router.post("/")

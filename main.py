@@ -13,8 +13,8 @@ from starlette.middleware.cors import CORSMiddleware
 from environment import API_ROOT_PATH
 from exceptions import CustomException, custom_exception_handler
 
-title="Instruction State Machine API"
-summary="""This is the interface between the backend and user interface, it allows for 
+title = "Instruction State Machine API"
+summary = """This is the interface between the backend and user interface, it allows for 
 creation of workflows, processors, states and execution of processor state associations."""
 
 if API_ROOT_PATH:
@@ -38,6 +38,7 @@ origins = [
     "https://127.0.0.1",
     "https://localhost:3000",
     "http://localhost:3000",
+    "https://ism.quantumwake.io"
 ]
 
 app.add_middleware(
