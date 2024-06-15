@@ -31,10 +31,6 @@ WORKDIR /app/repo
 # Force all commands to run in bash
 SHELL ["/bin/bash", "--login", "-c"]
 
-
-# delete any specific configuration file tied to the current build environment
-RUN rm -rf .*
-
 # install the conda build package in base
 RUN conda install -y conda-build
 
@@ -72,6 +68,9 @@ RUN conda list
 # clone the api repo
 #RUN git clone --depth 1 ${GITHUB_REPO_URL} repo
 ADD . /app/repo
+
+# delete any specific configuration file tied to the current build environment
+RUN rm -rf .*
 
 # display uvicorn version
 RUN uvicorn --version

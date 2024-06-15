@@ -19,7 +19,7 @@ user_router = APIRouter()
 firebase_credential = credentials.Certificate(FIREBASE_CREDENTIALS_JSON_FILE)
 default_app = firebase_admin.initialize_app(credential=firebase_credential)
 
-@user_router.post()
+@user_router.post("")
 # @check_null_response
 async def create_user_profile(user_details: dict) -> Optional[UserProfile]:
 
