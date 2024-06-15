@@ -19,9 +19,7 @@ COPY ${CONDA_ISM_CORE_PATH} .
 RUN tar -zxvf $CONDA_ISM_DB_PATH -C /
 RUN tar -zxvf $CONDA_ISM_CORE_PATH -C /
 
-# clone the api repo
-#RUN git clone --depth 1 ${GITHUB_REPO_URL} repo
-ADD . /app/repo
+ADD environment.yaml /app/repo/environment.yaml
 
 # Move to the repository directory
 WORKDIR /app/repo
@@ -71,6 +69,10 @@ RUN pip install firebase-admin
 # display all packages installed
 RUN conda list
 
+# clone the api repo
+#RUN git clone --depth 1 ${GITHUB_REPO_URL} repo
+ADD . /app/repo
+
 # display uvicorn version
 RUN uvicorn --version
 
@@ -83,6 +85,6 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["entrypoint.sh"]
 
 # Run Uvicorn when the container launches
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80", "--reload", "--proxy-headers", "--log-level", "trace"]
 #CMD ["/bin/bash", "-c", "conda activate alethic-ism-api && exec uvicorn main:app --host 0.0.0.0 --port 80"]
 

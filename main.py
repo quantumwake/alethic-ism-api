@@ -30,15 +30,16 @@ else:
     )
 
 origins = [
-    "http://localhost",
-    "https://localhost",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1",
-    "https://127.0.0.1:3000",
-    "https://127.0.0.1",
-    "https://localhost:3000",
-    "http://localhost:3000",
-    "https://ism.quantumwake.io"
+    "*"
+    # "http://localhost",
+    # "https://localhost",
+    # "http://127.0.0.1:3000",
+    # "http://127.0.0.1",
+    # "https://127.0.0.1:3000",
+    # "https://127.0.0.1",
+    # "https://localhost:3000",
+    # "http://localhost:3000",
+    # "https://ism.quantumwake.io"
 ]
 
 app.add_middleware(
