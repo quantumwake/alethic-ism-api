@@ -24,7 +24,8 @@ spec:
                 path: .firebase-credentials.json
       containers:
       - name: alethic-ism-api
-        image: krasaee/alethic-ism-api:d59015d51d885e42ebe8428c19ff374fabb90a4d
+        image: krasaee/alethic-ism-state-router:9d2c121546ab4806c0ed2e54da3b5d048accf845
+        imagePullPolicy: Always
         volumeMounts:
           - name: alethic-ism-api-secret-config-volume
             mountPath: /app/repo/.routing.yaml
@@ -42,6 +43,5 @@ spec:
                 key: DATABASE_URL
         ports:
         - containerPort: 80
-        imagePullPolicy: Always
       imagePullSecrets:
       - name: regcred

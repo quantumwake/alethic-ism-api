@@ -1,6 +1,6 @@
 #!/bin/bash
 
-APP_NAME="alethic-ism-api"
+APP_NAME="alethic-ism-state-router"
 DOCKER_NAMESPACE="krasaee"
 CONDA_PACKAGE_PATH_ISM_CORE="../alethic-ism-core"
 CONDA_PACKAGE_PATH_ISM_DB="../alethic-ism-db"
@@ -16,26 +16,24 @@ fi;
 
 echo "Using arch: $ARCH for image tag $TAG"
 
-echo "Identifying ISM Core and ISM DB libraries"
-conda_ism_core_path=$(find $CONDA_PACKAGE_PATH_ISM_CORE -type f -name "alethic-ism-core*.tar.gz")
+echo "Identifying ISM core library"
+conda_ism_core_path=$(ls -ltr $CONDA_PACKAGE_PATH_ISM_CORE/alethic-ism-core*.tar.gz | awk '{print $9}' | tail -n 1)
 conda_ism_core_path=$(basename $conda_ism_core_path)
-echo "Using Conda ISM Core Library Path: $conda_ism_core_path"
+echo "Using Conda ISM core library: $conda_ism_core_path"
 
-conda_ism_db_path=$(find $CONDA_PACKAGE_PATH_ISM_DB -type f -name "alethic-ism-db*.tar.gz")
+echo "Identifying ISM database library"
+conda_ism_db_path=$(ls -ltr $CONDA_PACKAGE_PATH_ISM_DB/alethic-ism-db*.tar.gz | awk '{print $9}' | tail -n 1)
 conda_ism_db_path=$(basename $conda_ism_db_path)
-echo "Using Conda ISM DB Library Path: $conda_ism_db_path"
+echo "Using Conda ISM database library: $conda_ism_db_path"
 
+# Copy the built library files over to the local directory
 if [ ! -z $conda_ism_db_path ] && [ ! -z $conda_ism_core_path ];
 then
   echo "Copying ISM core and db packages to local for docker build to consume"
   cp $CONDA_PACKAGE_PATH_ISM_CORE/$conda_ism_core_path $conda_ism_core_path
   cp $CONDA_PACKAGE_PATH_ISM_DB/$conda_ism_db_path $conda_ism_db_path
 
-  echo "Starting docker build for alethic-ism-api:$GIT_COMMIT_ID"
-  #docker build --platform linux/amd64 -t quantumwake/alethic-ism-db:latest \
-  # --build-arg GITHUB_REPO_URL=https://github.com/quantumwake/alethic-ism-db.git --no-cahce .
-
-  # TODO hardcoded - this is set to a private repo for now, such that it can be deployed to k8s
+  echo "Starting docker build for $TAG"
   docker build \
    --platform $ARCH \
    --progress=plain -t $TAG \

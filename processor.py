@@ -33,7 +33,7 @@ async def fetch_processor_states(
         direction: ProcessorStateDirection = ProcessorStateDirection.INPUT) \
         -> Optional[List[ProcessorState]]:
 
-    return storage.fetch_processor_state(
+    return storage.fetch_processor_state_route(
         processor_id=processor_id,
         direction=direction
     )
