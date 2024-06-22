@@ -24,7 +24,7 @@ spec:
                 path: .firebase-credentials.json
       containers:
       - name: alethic-ism-api
-        image: krasaee/alethic-ism-api:fd4c79149efaeded6292dbb9d4f3ee55e03143cb
+        image: krasaee/alethic-ism-api:d59015d51d885e42ebe8428c19ff374fabb90a4d
         volumeMounts:
           - name: alethic-ism-api-secret-config-volume
             mountPath: /app/repo/.routing.yaml

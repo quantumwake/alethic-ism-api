@@ -31,7 +31,7 @@ async def create_workflow_edge(edge: WorkflowEdge) \
     return storage.insert_workflow_edge(edge=edge)
 
 
-@workflow_router.delete("/edge/delete")
+@workflow_router.delete("/edge")
 async def delete_workflow_edge(edge: WorkflowEdgeDelete) -> None:
     storage.delete_workflow_edge(
         source_node_id=edge.source_node_id,

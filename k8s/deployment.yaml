@@ -25,6 +25,7 @@ spec:
       containers:
       - name: alethic-ism-api
         image: <IMAGE>
+        imagePullPolicy: Always
         volumeMounts:
           - name: alethic-ism-api-secret-config-volume
             mountPath: /app/repo/.routing.yaml
@@ -42,6 +43,5 @@ spec:
                 key: DATABASE_URL
         ports:
         - containerPort: 80
-        imagePullPolicy: Always
       imagePullSecrets:
       - name: regcred

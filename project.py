@@ -57,7 +57,7 @@ async def fetch_project_processor_states(project_id: str) \
 
     # TODO needs caching likely, or we need to stream this to each user connected,
     #  instead of a POLL mechanism (this was the easiest fastest for now, ...)
-    processor_states = storage.fetch_processor_states_by_project_id(project_id=project_id)
+    processor_states = storage.fetch_processor_state_routes_by_project_id(project_id=project_id)
     return processor_states
 
 
