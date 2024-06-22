@@ -27,3 +27,8 @@ async def fetch_monitor_log_events_by_id(state_id: str) -> Optional[List[Monitor
     ]
 
     return monitor_log_events
+
+
+@monitor_router.delete('/project/{project_id}')
+async def delete_monitor_log_events_by_project_id(project_id: str) -> int:
+    return storage.delete_monitor_log_event(project=project_id)
