@@ -41,6 +41,12 @@ async def delete_config_definition(state_id: str, definition_type: str, id: str)
     )
 
 
+@state_router.delete("/{state_id}/column/{column_id}")
+@check_null_response
+async def delete_state_column(state_id, column_id) -> int:
+    storage.delete_state_column()
+
+
     # return storage.save_state(state=state, options={
     #     "force_update_column": True
     # })

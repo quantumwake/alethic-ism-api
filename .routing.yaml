@@ -8,7 +8,6 @@ messageConfig:
     topic_routes:
       - selector: state/router
         topic: ism_state_router
-#        manage_topic: ism_openai_qa_manage
         subscription: ism_state_router_subscription
         service_url: pulsar://localhost:6650
 
