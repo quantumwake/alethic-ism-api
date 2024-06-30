@@ -1,11 +1,12 @@
 import io
+import json
 from typing import Optional
 from core.processor_state import State, StateDataKeyDefinition
 from fastapi import UploadFile, File, APIRouter
 from environment import storage
 from http_exceptions import check_null_response
-from process_file import process_csv_stream
-
+from message_router import message_router
+from process_file import process_csv_stream, process_csv_state_sync_store
 
 state_router = APIRouter()
 
@@ -62,8 +63,20 @@ async def upload_file(state_id: str, file: UploadFile = File(...)):
 
         data = await file.read()
         text_data = io.StringIO(data.decode('utf-8'))
-        state = await process_csv_stream(state=state, io=text_data)
-        state = storage.save_state(state=state)
+        query_states = await process_csv_state_sync_store(state=state, io=text_data)
+
+        # derive the new message with complete csv file data
+        message = {
+            "type": "query_state_direct",
+            "state_id": state.id,
+            "query_states": query_states
+        }
+
+        message_string = json.dumps(message)
+        sync_router = message_router.find_router("state/sync/store")
+        sync_router.send_message(msg=message_string)
+
+        # state = storage.save_state(state=state)
 
         return {
             "status": "success",

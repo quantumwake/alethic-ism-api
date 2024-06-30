@@ -7,6 +7,8 @@ from template import template_router
 from user import user_router
 from project import project_router
 from workflow import workflow_router
+from state_subscriber import state_channel_router
+
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from environment import API_ROOT_PATH
@@ -57,7 +59,7 @@ app.include_router(workflow_router, prefix="/workflow", tags=["workflow"])
 app.include_router(processor_router, prefix="/processor", tags=["processor"])
 app.include_router(processor_state_router, prefix="/processor/state/route", tags=["processor state route"])
 app.include_router(state_router, prefix="/state", tags=["state"])
-# app.include_router(route_router, prefix="/route", tags=["route"])
 app.include_router(provider_router, prefix="/provider", tags=["provider"])
 app.include_router(template_router, prefix="/template", tags=["template"])
 app.include_router(monitor_router, prefix="/monitor", tags=["monitor log event"])
+app.include_router(state_channel_router, prefix="/streams", tags=["state stream"])

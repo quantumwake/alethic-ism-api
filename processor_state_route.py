@@ -2,24 +2,18 @@ import json
 from typing import Optional
 
 from core.base_message_route_model import RouteMessageStatus
-from core.base_message_router import Router
+from core.base_model import ProcessorStatusCode
 from core.processor_state_storage import ProcessorState
-from core.pulsar_message_producer_provider import PulsarMessagingProducerProvider
 from fastapi import APIRouter
 from pydantic import ValidationError
 
-from environment import storage, ROUTING_FILE
+from environment import storage
 from http_exceptions import check_null_response
-from route import message_router
+from message_router import message_router
 
 processor_state_router = APIRouter()
 
-message_provider = PulsarMessagingProducerProvider()
-message_router = Router(
-    provider=message_provider,
-    yaml_file=ROUTING_FILE
-)
-
+processor_state_route_monitor = message_router.find_router("processor/monitor")
 
 @processor_state_router.post("")
 @check_null_response
@@ -47,7 +41,6 @@ async def route_forward_query_state_entry(state_id: str, query_state_entry: dict
     # project = storage.fetch_user_project(state.project_id)
 
     route_id = None ## TODO
-
     raise NotImplementedError('route_forward_query_state_entry')
 
     # create a message envelop for the query state
@@ -55,7 +48,7 @@ async def route_forward_query_state_entry(state_id: str, query_state_entry: dict
         # "user_id": project.user_id if project else None,
         # "project_id": project.project_id if project else None,
         "route_id": route_id,
-        "type": "query_state_entry",
+        "type": "query_state_route",
         "input_state_id": state_id,
         "query_state": [
             query_state_entry
@@ -75,7 +68,17 @@ async def execute_processor_state_route(route_id: str) -> RouteMessageStatus:
     processor_state = storage.fetch_processor_state_route(route_id=route_id)
 
     if not processor_state or len(processor_state) != 1:
+        #
+        # monitor_message = json.dumps({
+        #     "type": "processor_state",
+        #     "route_id": route_id,
+        #     "status": ProcessorStatusCode.FAILED.name.,
+        #     "exception": str(exception) if exception else None,
+        # })
+        #
+        # processor_state_route_monitor.send_message()
         raise ValidationError(f'invalid processor state route')
+
 
     # fetch the state information as input
     # state = storage.fetch_state(state_id=processor_state.state_id)
@@ -88,7 +91,7 @@ async def execute_processor_state_route(route_id: str) -> RouteMessageStatus:
     message = {
         # "user_id": project.user_id if project else None,
         # "project_id": project.project_id if project else None,
-        "type": "query_state_complete",
+        "type": "query_state_route",
         "route_id": route_id
         # "input_state_id": state_id,
         # "processor_id": processor_id

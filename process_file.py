@@ -1,9 +1,9 @@
 import csv
 import asyncio
 from io import StringIO
+from typing import List, Dict
 
 from core.processor_state import State
-
 
 async def process_file(state: State, filename: str):
     with open(filename, 'rb') as file:
@@ -27,6 +27,20 @@ async def process_csv_stream(state: State, io: StringIO):
         state.apply_query_state(query_state=query_state)
 
     return state
+
+
+async def process_csv_state_sync_store(state: State, io: StringIO) -> List[Dict]:
+    if not state:
+        raise KeyError(f"unable to locate state id {state.id}")
+
+    csv_reader = csv.reader(io)
+    header = next(csv_reader)  # Read the header row
+
+    # Create a dictionary of key-value pairs for the current row
+    query_states = [{key: value for key, value in zip(header, row)} for row in csv_reader]
+
+    return query_states
+
 
 async def main():
     state = {
