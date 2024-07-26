@@ -1,8 +1,7 @@
 import json
 from typing import Optional
 
-from core.base_message_route_model import RouteMessageStatus
-from core.base_model import ProcessorStatusCode
+from core.messaging.base_message_route_model import RouteMessageStatus
 from core.processor_state_storage import ProcessorState
 from fastapi import APIRouter
 from pydantic import ValidationError
@@ -11,9 +10,13 @@ from environment import storage
 from http_exceptions import check_null_response
 from message_router import message_router
 
-processor_state_router = APIRouter()
+# currently there is only one state router
+SELECTOR_STATE_ROUTER = "processor/state/router"
+SELECTOR_PROCESSOR_MONITOR = "processor/monitor"
 
-processor_state_route_monitor = message_router.find_router("processor/monitor")
+processor_state_router = APIRouter()
+monitor_route = message_router.find_route(SELECTOR_PROCESSOR_MONITOR)
+state_router_route = message_router.find_route(SELECTOR_STATE_ROUTER)
 
 @processor_state_router.post("")
 @check_null_response
@@ -99,5 +102,6 @@ async def execute_processor_state_route(route_id: str) -> RouteMessageStatus:
 
     # convert to a string object for submission to the pub system
     message_string = json.dumps(message)
-    status = message_router.send_message("state/router", message_string)
+    # status = message_router.send_message(SELECTOR_STATE_ROUTER, message_string)
+    status = await state_router_route.publish(message_string)
     return status

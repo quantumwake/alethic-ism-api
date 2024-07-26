@@ -14,12 +14,16 @@ spec:
         app: alethic-ism-api
     spec:
       volumes:
+        - name: alethic-ism-routes-secret-volume
+          secret:
+            secretName: alethic-ism-routes-secret
+            items:
+              - key: .routing.yaml
+                path: .routing.yaml
         - name: alethic-ism-api-secret-config-volume
           secret:
             secretName: alethic-ism-api-secret
             items:
-              - key: .routing.yaml
-                path: .routing.yaml
               - key: .firebase-credentials.json
                 path: .firebase-credentials.json
       containers:
@@ -27,7 +31,7 @@ spec:
         image: <IMAGE>
         imagePullPolicy: Always
         volumeMounts:
-          - name: alethic-ism-api-secret-config-volume
+          - name: alethic-ism-routes-secret-volume
             mountPath: /app/repo/.routing.yaml
             subPath: .routing.yaml
             readOnly: true

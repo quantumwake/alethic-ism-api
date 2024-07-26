@@ -73,8 +73,9 @@ async def upload_file(state_id: str, file: UploadFile = File(...)):
         }
 
         message_string = json.dumps(message)
-        sync_router = message_router.find_router("state/sync/store")
-        sync_router.send_message(msg=message_string)
+        sync_route = message_router.find_route("processor/state/sync")
+        await sync_route.publish(msg=message_string)
+        # sync_route.flush()
 
         # state = storage.save_state(state=state)
 

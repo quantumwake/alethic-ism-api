@@ -1,3 +1,4 @@
+from message_router import message_router
 from processor_state_route import processor_state_router
 from monitor import monitor_router
 from processor import processor_router
@@ -63,3 +64,20 @@ app.include_router(provider_router, prefix="/provider", tags=["provider"])
 app.include_router(template_router, prefix="/template", tags=["template"])
 app.include_router(monitor_router, prefix="/monitor", tags=["monitor log event"])
 app.include_router(state_channel_router, prefix="/streams", tags=["state stream"])
+
+
+@app.on_event("startup")
+async def startup_event():
+    pass
+    # connect_routes = [
+    #     "processor/state/router",
+    #     "processor/state/sync",
+    #     "processor/monitor"
+    # ]
+
+    # [await message_router.connect(url) for url in connect_routes]
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await message_router.disconnect()
