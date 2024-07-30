@@ -1,11 +1,12 @@
 from typing import Optional, List
 
-from core.base_model import ProcessorStateDirection
+from core.base_model import ProcessorStateDirection, ProcessorStatusCode
 from core.processor_state_storage import Processor, ProcessorState
 from fastapi import APIRouter
 
 from environment import storage
 from http_exceptions import check_null_response
+from models import ProcessorStatusUpdated
 
 processor_router = APIRouter()
 
@@ -37,6 +38,23 @@ async def fetch_processor_states(
         processor_id=processor_id,
         direction=direction
     )
+
+
+async def stop_processor(processor_id: str) -> ProcessorStatusUpdated:
+    updated = storage.update_processor_state(
+        processor_id=processor_id,
+        status=ProcessorStatusCode.TERMINATE
+    )
+
+    result = ProcessorStatusUpdated(
+        processor_id=processor_id,
+        status=ProcessorStatusCode.TERMINATE,
+        success=False,
+    )
+
+    # if the update was successful then set success = true
+    if updated > 0: result.success = True
+    return result
 
 #
 # @app.put("/processor/terminate", tags=["Processor"])

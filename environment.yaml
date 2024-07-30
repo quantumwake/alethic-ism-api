@@ -9,7 +9,7 @@ dependencies:
   - python-dotenv
   - psycopg2
   - python-multipart
-  - pulsar-client   # message bus provider pulsar
+#  - pulsar-client   # message bus provider pulsar
   - restrictedpython
 # via pip  - firebase-admin
   - pyyaml

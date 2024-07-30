@@ -63,13 +63,13 @@ async def upload_file(state_id: str, file: UploadFile = File(...)):
 
         data = await file.read()
         text_data = io.StringIO(data.decode('utf-8'))
-        query_states = await process_csv_state_sync_store(state=state, io=text_data)
+        query_state = await process_csv_state_sync_store(state=state, io=text_data)
 
         # derive the new message with complete csv file data
         message = {
             "type": "query_state_direct",
             "state_id": state.id,
-            "query_states": query_states
+            "query_state": query_state
         }
 
         message_string = json.dumps(message)

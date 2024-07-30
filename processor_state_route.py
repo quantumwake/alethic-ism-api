@@ -46,21 +46,29 @@ async def route_forward_query_state_entry(state_id: str, query_state_entry: dict
     route_id = None ## TODO
     raise NotImplementedError('route_forward_query_state_entry')
 
-    # create a message envelop for the query state
+    # # create a message envelop for the query state
+    # message = {
+    #     # "user_id": project.user_id if project else None,
+    #     # "project_id": project.project_id if project else None,
+    #     "route_id": route_id,
+    #     "type": "query_state_route",
+    #     "input_state_id": state_id,
+    #     "query_state": [
+    #         query_state_entry
+    #     ]
+    # }
+    #
+    # create a message envelop for running a complete state forward
     message = {
-        # "user_id": project.user_id if project else None,
-        # "project_id": project.project_id if project else None,
-        "route_id": route_id,
         "type": "query_state_route",
-        "input_state_id": state_id,
+        "route_id": route_id,
         "query_state": [
             query_state_entry
         ]
     }
 
     # convert to a string object for submission to the pub system
-    message_string = json.dumps(message)
-    status = message_router.send_message("state/router", message_string)
+    status = state_router_route.publish(message)
     return status
 
 

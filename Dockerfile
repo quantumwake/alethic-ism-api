@@ -56,14 +56,14 @@ RUN conda install -y conda-build
 RUN conda config --add channels conda-forge
 RUN conda config --set channel_priority strict
 
-## Install Conda packages
-RUN conda install -y pulsar-client
-
 ## Manually install firebase admin since it is not part of conda channels
 RUN pip install firebase-admin
 
 # display all packages installed
 RUN conda list
+#
+#FROM continuumio/miniconda3
+#COPY --from=build /app/* /app/*
 
 # clone the api repo
 #RUN git clone --depth 1 ${GITHUB_REPO_URL} repo

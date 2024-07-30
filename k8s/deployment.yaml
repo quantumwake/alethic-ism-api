@@ -40,6 +40,11 @@ spec:
             subPath: .firebase-credentials.json
             readOnly: true
         env:
+          - name: ROUTING_FILE
+            valueFrom:
+              secretKeyRef:
+                name: alethic-ism-api-secret
+                key: ROUTING_FILE
           - name: DATABASE_URL
             valueFrom:
               secretKeyRef:
