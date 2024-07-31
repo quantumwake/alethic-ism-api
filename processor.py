@@ -40,15 +40,19 @@ async def fetch_processor_states(
     )
 
 
-async def stop_processor(processor_id: str) -> ProcessorStatusUpdated:
-    updated = storage.update_processor_state(
+@processor_router.post("/{processor_id}/status/{status}")
+@check_null_response
+async def change_processor_status(processor_id: str, status: str = "TERMINATE") -> ProcessorStatusUpdated:
+    statusCode = ProcessorStatusCode(status)
+
+    updated = storage.change_processor_status(
         processor_id=processor_id,
-        status=ProcessorStatusCode.TERMINATE
+        status=statusCode
     )
 
     result = ProcessorStatusUpdated(
         processor_id=processor_id,
-        status=ProcessorStatusCode.TERMINATE,
+        status=statusCode,
         success=False,
     )
 
