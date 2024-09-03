@@ -1,6 +1,8 @@
 from typing import Optional, List
 from core.base_model import MonitorLogEvent
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+import token_service
 from environment import storage
 from http_exceptions import check_null_response
 
@@ -9,7 +11,7 @@ monitor_router = APIRouter()
 
 @monitor_router.post("/project/{project_id}")
 @check_null_response
-async def fetch_monitor_log_events_by_project_id(project_id: str) -> Optional[List[MonitorLogEvent]]:
+async def fetch_monitor_log_events_by_project_id(project_id: str, user_id=Depends(token_service.verify_jwt)) -> Optional[List[MonitorLogEvent]]:
     return storage.fetch_monitor_log_events(project_id=project_id)
 
 

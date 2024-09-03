@@ -1,10 +1,13 @@
+from filter import filter_router
 from message_router import message_router
 from processor_state_route import processor_state_router
 from monitor import monitor_router
 from processor import processor_router
 from provider import provider_router
+from session import session_router
 from state import state_router
 from template import template_router
+from usage import usage_router
 from user import user_router
 from project import project_router
 from workflow import workflow_router
@@ -49,21 +52,25 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Authorization"],  # Make sure Authorization header is exposed
 )
 
 # Register the custom exception handler
 app.add_exception_handler(CustomException, custom_exception_handler)
 
-app.include_router(user_router, prefix="/user", tags=["user"])
-app.include_router(project_router, prefix="/project", tags=["project"])
-app.include_router(workflow_router, prefix="/workflow", tags=["workflow"])
-app.include_router(processor_router, prefix="/processor", tags=["processor"])
-app.include_router(processor_state_router, prefix="/processor/state/route", tags=["processor state route"])
+app.include_router(user_router, prefix="/user", tags=["users"])
+app.include_router(usage_router, prefix="/usage", tags=["usage"])
+app.include_router(project_router, prefix="/project", tags=["projects"])
+app.include_router(workflow_router, prefix="/workflow", tags=["workflows"])
+app.include_router(processor_router, prefix="/processor", tags=["processors"])
+app.include_router(processor_state_router, prefix="/processor/state/route", tags=["routes"])
 app.include_router(state_router, prefix="/state", tags=["state"])
-app.include_router(provider_router, prefix="/provider", tags=["provider"])
-app.include_router(template_router, prefix="/template", tags=["template"])
-app.include_router(monitor_router, prefix="/monitor", tags=["monitor log event"])
-app.include_router(state_channel_router, prefix="/streams", tags=["state stream"])
+app.include_router(session_router, prefix="/session", tags=["sessions"])
+app.include_router(provider_router, prefix="/provider", tags=["providers"])
+app.include_router(filter_router, prefix="/filter", tags=["filters"])
+app.include_router(template_router, prefix="/template", tags=["templates"])
+app.include_router(monitor_router, prefix="/monitor", tags=["monitors"])
+app.include_router(state_channel_router, prefix="/streams", tags=["streams"])
 
 
 @app.on_event("startup")

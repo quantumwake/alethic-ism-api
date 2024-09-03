@@ -27,7 +27,7 @@ new_absolute_path = f'/Users/kasrarasaee/Development/quantumwake/temp_processor_
 
 # states = {file: state for file, state in states if '0_8' in file }
 
-for state_file, state in states.items():
+for state_file, state in states.filter_items():
 
     # TODO for backwards compatibility issue
     if 'version' not in state.config.__dict__ or not state.config.version:

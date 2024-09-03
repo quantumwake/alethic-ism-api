@@ -1,14 +1,21 @@
 import io
 import json
-from typing import Optional
-from core.processor_state import State, StateDataKeyDefinition
+from typing import Optional, List, Union
+
+from core.base_model import ProcessorStateDirection
+from core.messaging.base_message_route_model import RouteMessageStatus
+from core.processor_state import State
 from fastapi import UploadFile, File, APIRouter
+from pydantic import ValidationError, BaseModel
+
 from environment import storage
 from http_exceptions import check_null_response
 from message_router import message_router
-from process_file import process_csv_stream, process_csv_state_sync_store
+from process_file import process_csv_state_sync_store
+from processor_state_route import SELECTOR_STATE_ROUTER
 
 state_router = APIRouter()
+state_router_route = message_router.find_route(SELECTOR_STATE_ROUTER)
 
 
 @state_router.get('/{state_id}')
@@ -47,10 +54,77 @@ async def delete_config_definition(state_id: str, definition_type: str, id: str)
 async def delete_state_column(state_id, column_id) -> int:
     storage.delete_state_column()
 
-
     # return storage.save_state(state=state, options={
     #     "force_update_column": True
     # })
+
+
+
+def derive_message_from_input_list(query_state: list[str]):
+    # for query_state_entry in query_state:
+    raise NotImplementedError("input message as list is not implemented")
+
+
+def derive_message_from_input_dict(route_id: str, query_state_entry: dict):
+    response_message = {
+        "type": "query_state_entry",
+        "route_id": route_id,
+        "query_state": [query_state_entry]
+    }
+
+    return response_message
+
+
+def derive_message_from_input_value(route_id: str, query_state_entry_value: any):
+    return {
+        "type": "query_state_entry",
+        "route_id": route_id,
+        "query_state": [
+            {"input": str(query_state_entry_value)}
+        ]
+    }
+
+#
+# class QueryStateEntry(BaseModel):
+#     session_id: Optional[str] = None
+#     user: Optional[str] = None
+#     input: Optional[str] = None
+#     content: Optional[str] = None
+
+
+@state_router.post('/{state_id}/forward/entry')
+@check_null_response
+async def route_forward_query_state_entry(state_id: str, input_value: Union[str, dict, bytes]) -> RouteMessageStatus:
+    state = storage.fetch_state(state_id=state_id)
+    if not state:
+        raise ValidationError(f'input state id {state_id} does not exist')
+
+    # fetch the processor state route for the input state id
+    # essentially what this is doing is finding a set of processors that take this state as their input
+    processor_state_routes = storage.fetch_processor_state_route(
+        state_id=state_id,
+        direction=ProcessorStateDirection.INPUT)
+
+    if not processor_state_routes:
+        raise ValidationError(f"state_id: {state_id} is not connected to any processor inputs")
+
+    # user = "krasaee"  # TODO need to extract from jwt
+
+    # we iterate each processor state route and submit the input value to the processor
+    for processor_state in processor_state_routes:
+        route_id = processor_state.id
+        if isinstance(input_value, dict):
+            message = derive_message_from_input_dict(route_id=route_id, query_state_entry=input_value)
+        elif isinstance(input_value, list):
+            message = derive_message_from_input_list(route_id=route_id, query_state=input_value)
+        else:
+            message = derive_message_from_input_value(route_id=input_value)
+
+        # convert to a string object for submission to the pub system
+        message_string = json.dumps(message)
+        status = await state_router_route.publish(message_string)
+
+    return status
 
 
 @state_router.post("/{state_id}/data/upload")
@@ -93,4 +167,3 @@ async def upload_file(state_id: str, file: UploadFile = File(...)):
 @check_null_response
 async def fetch(state_id: str):
     return storage.fetch_processor_state(state_id=state_id)
-

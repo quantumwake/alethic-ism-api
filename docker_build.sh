@@ -48,14 +48,14 @@ echo "Conda ISM db library: $CONDA_ISM_DB_PATH"
 ## Ensure ISM core library exists
 if [ -z "${CONDA_ISM_CORE_PATH}" ];
 then
-  echp "Unable to build without alethic-ism-core package, no data found in path $CONDA_PACKAGE_PATH_ISM_CORE"
+  echo "Unable to build without alethic-ism-core package, no data found in path $CONDA_PACKAGE_PATH_ISM_CORE"
   exit;
 fi
 
 ## Ensure ISM db library exists
 if [ -z "${CONDA_ISM_DB_PATH}" ];
 then
-  echp "Unable to build without alethic-ism-db package, no data found in path $CONDA_PACKAGE_PATH_ISM_DB"
+  echo "Unable to build without alethic-ism-db package, no data found in path $CONDA_PACKAGE_PATH_ISM_DB"
   exit;
 fi
 

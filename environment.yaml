@@ -9,13 +9,13 @@ dependencies:
   - python-dotenv
   - psycopg2
   - python-multipart
-#  - pulsar-client   # message bus provider pulsar
   - restrictedpython
-# via pip  - firebase-admin
+  - redis-py
   - pyyaml
   - fastapi
   - pydantic
   - nats-py   # message bus provider NATS
+  - jinja2
   - uvicorn
   - alethic-ism-core
   - alethic-ism-db

@@ -40,16 +40,41 @@ spec:
             subPath: .firebase-credentials.json
             readOnly: true
         env:
+          - name: REDIS_HOST
+            valueFrom:
+              secretKeyRef:
+                name: alethic-ism-api-secret
+                key: REDIS_HOST
+
+          - name: REDIS_PORT
+            valueFrom:
+              secretKeyRef:
+                name: alethic-ism-api-secret
+                key: REDIS_PORT
+
+          - name: REDIS_PASS
+            valueFrom:
+              secretKeyRef:
+                name: alethic-ism-api-secret
+                key: REDIS_PASS
+
           - name: ROUTING_FILE
             valueFrom:
               secretKeyRef:
                 name: alethic-ism-api-secret
                 key: ROUTING_FILE
+
           - name: DATABASE_URL
             valueFrom:
               secretKeyRef:
                 name: alethic-ism-api-secret
                 key: DATABASE_URL
+
+          - name: SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: alethic-ism-api-secret
+                key: SECRET_KEY
         ports:
         - containerPort: 80
       imagePullSecrets:

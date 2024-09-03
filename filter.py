@@ -1,165 +1,171 @@
-import io
-import json
-from typing import Optional, List, Union
-
-from core.base_model import ProcessorStateDirection
-from core.messaging.base_message_route_model import RouteMessageStatus
-from core.processor_state import State
-from fastapi import UploadFile, File, APIRouter
-from pydantic import ValidationError, BaseModel
-
-from environment import storage
+import uuid
+from enum import Enum
+from typing import Optional, Dict, Union, List
+from fastapi import APIRouter
+from pydantic import BaseModel
 from http_exceptions import check_null_response
-from message_router import message_router
-from process_file import process_csv_state_sync_store
-from processor_state_route import SELECTOR_STATE_ROUTER
 
-state_router = APIRouter()
-state_router_route = message_router.find_route(SELECTOR_STATE_ROUTER)
+from core.processor_state import State
 
+filter_router = APIRouter()
 
-@state_router.get('/{state_id}')
-@check_null_response
-async def fetch_state(state_id: str, load_data: bool = False) -> Optional[State]:
-    return storage.load_state(state_id=state_id, load_data=load_data)
+# import restrictedpython
 
 
-@state_router.post("/create")
-@check_null_response
-async def merge_state(state: State) -> State:
-    return storage.save_state(state=state, options={
-        "force_update_column": True
-    })
+class FilterOperator(Enum):
+    EQ = "EQ"
+    GT = "GT"
+    LT = "LT"
 
 
-@state_router.delete('/{state_id}/data')
-@check_null_response
-async def delete_state_data(state_id: str) -> int:
-    result = storage.delete_state_data(state_id=state_id)
-    return 1
+class FilterItem(BaseModel):
+    key: str
+    operator: Optional[FilterOperator] = FilterOperator.EQ
+    value: Union[str, int, bool, float]
 
 
-@state_router.delete("/{state_id}/config/{definition_type}/{id}")
-@check_null_response
-async def delete_config_definition(state_id: str, definition_type: str, id: str) -> int:
-    return storage.delete_state_config_key_definition(
-        state_id=state_id,
-        definition_type=definition_type,
-        definition_id=id
-    )
+class Filter(BaseModel):
+    id: Optional[str] = None
+    name: Optional[str] = None
+    filter_items: Optional[Dict[str, FilterItem]] = None
+
+    def add_filter_item(self, filter_item: FilterItem) -> FilterItem:
+        if not self.filter_items:
+            self.filter_items = Dict[str, FilterItem] = {}
+
+        self.filter_items[filter_item.key] = filter_item
+        return filter_item
+
+    def get_filter_item(self, key) -> Optional[FilterItem]:
+        if not self.filter_items or key not in self.filter_items:
+            return None
+
+        return self.filter_items[key]
+
+    def apply_filter_on_data(self, data: Union[str, int, bool, float]):
+        if not isinstance(data, dict):
+            raise NotImplementedError(f'unable to apply filters on none dictionary types, currently not supported')
+
+        # Apply simple filters
+        for key, filter_item in self.filter_items.items():
+            data_value = data.get(key)
+            op = filter_item.operator
+
+            if op == FilterOperator.EQ and data_value != filter_item.value:
+                return False
+            elif op == FilterOperator.GT and data_value <= filter_item.value:
+                return False
+            elif op == FilterOperator.LT and data_value >= filter_item.value:
+                return False
+
+        # # Apply advanced filter if set
+        # if self.advanced_filter:
+        #     locals = {"event": event}
+        #     try:
+        #         result = restrictedpython.eval_restricted(self.advanced_filter, locals)
+        #         return bool(result)
+        #     except Exception as e:
+        #         print(f"Error in advanced filter: {e}")
+        #         return False
+
+        return True
 
 
-@state_router.delete("/{state_id}/column/{column_id}")
-@check_null_response
-async def delete_state_column(state_id, column_id) -> int:
-    storage.delete_state_column()
+class FilterStorage:
 
-    # return storage.save_state(state=state, options={
-    #     "force_update_column": True
-    # })
+    def __init__(self):
+        self.filters: Dict[str, Filter] = {}
+        # self.advanced_filter = None
 
+    def insert_filter(self, filter: Filter):
+        if not self.filters:
+            self.filters: Dict[str, Filter] = {}
 
+        if not filter.id:
+            filter.id = str(uuid.uuid4())
 
-def derive_message_from_input_list(query_state: list[str]):
-    # for query_state_entry in query_state:
-    raise NotImplementedError("input message as list is not implemented")
+        self.filters[filter.id] = filter
 
+    def fetch_filter(self, filter_id: str) -> Optional[Filter]:
+        return self.filters[filter_id] if filter_id in self.filters else None
 
-def derive_message_from_input_dict(route_id: str, query_state_entry: dict):
-    response_message = {
-        "type": "query_state_entry",
-        "route_id": route_id,
-        "query_state": [query_state_entry]
-    }
+    def apply_filter_on_data(self, filter_id: str, data: Union[str, int, bool, float]) -> bool:
+        if filter_id not in self.filters:
+            return None
 
-    return response_message
+        filter = self.filters[filter_id]
+        return filter.apply_filter_on_data(data)
 
-
-def derive_message_from_input_value(route_id: str, query_state_entry_value: any):
-    return {
-        "type": "query_state_entry",
-        "route_id": route_id,
-        "query_state": [
-            {"input": str(query_state_entry_value)}
-        ]
-    }
-
+    # def apply_filters(self, event):
+    #     # Apply simple filters
+    #     for key, operator, value in self.simple_filters:
+    #         if operator == "eq" and event.get(key) != value:
+    #             return False
+    #         elif operator == "gt" and event.get(key) <= value:
+    #             return False
+    #         elif operator == "lt" and event.get(key) >= value:
+    #             return False
+    #         # Add more operators as needed
+    #
+    #     # Apply advanced filter if set
+    #     if self.advanced_filter:
+    #         locals = {"event": event}
+    #         try:
+    #             result = restrictedpython.eval_restricted(self.advanced_filter, locals)
+    #             return bool(result)
+    #         except Exception as e:
+    #             print(f"Error in advanced filter: {e}")
+    #             return False
+    #
+    #     return True
 #
-# class QueryStateEntry(BaseModel):
-#     session_id: Optional[str] = None
-#     user: Optional[str] = None
-#     input: Optional[str] = None
-#     content: Optional[str] = None
+# # Usage example
+# filter_system = FilterSystem()
+#
+# # Simple filters
+# filter_system.add_simple_filter("temperature", "gt", 25)
+# filter_system.add_simple_filter("status", "eq", "active")
+#
+# # Advanced filter
+# filter_system.set_advanced_filter("""
+# if event['temperature'] > 30 and event['humidity'] < 50:
+#     return True
+# elif event['status'] == 'critical':
+#     return True
+# return False
+# """)
+#
+# # Test
+# test_event = {"temperature": 32, "humidity": 45, "status": "active"}
+# result = filter_system.apply_filters(test_event)
+# print(f"Event passed filters: {result}")
+#
 
 
-@state_router.post('/{state_id}/forward/entry')
+filterStorage = FilterStorage()
+
+
+@filter_router.get('/{filter_id}')
 @check_null_response
-async def route_forward_query_state_entry(state_id: str, input_value: Union[str, dict, bytes]) -> RouteMessageStatus:
-    state = storage.fetch_state(state_id=state_id)
-    if not state:
-        raise ValidationError(f'input state id {state_id} does not exist')
-
-    processor_state_routes = storage.fetch_processor_state_route(
-        state_id=state_id,
-        direction=ProcessorStateDirection.INPUT)
-
-    if not processor_state_routes:
-        raise ValidationError(f"state_id: {state_id} is not connected to any processor inputs")
-
-    user = "krasaee"  # TODO need to extract from jwt
-    for processor_state in processor_state_routes:
-        route_id = processor_state.id
-        if isinstance(input_value, dict):
-            message = derive_message_from_input_dict(route_id=route_id, query_state_entry=input_value)
-        elif isinstance(input_value, list):
-            message = derive_message_from_input_list(route_id=route_id, query_state=input_value)
-        else:
-            message = derive_message_from_input_value(route_id=input_value)
-
-        # convert to a string object for submission to the pub system
-        message_string = json.dumps(message)
-        status = await state_router_route.publish(message_string)
-
-    return status
+async def fetch_filter(filter_id: str) -> Optional[Filter]:
+    return filterStorage.fetch_filter(filter_id=filter_id)
 
 
-@state_router.post("/{state_id}/data/upload")
-async def upload_file(state_id: str, file: UploadFile = File(...)):
-    try:
-        state = storage.load_state(state_id=state_id)
-
-        if not state:
-            raise KeyError(f"unable to locate state id {state_id}")
-
-        data = await file.read()
-        text_data = io.StringIO(data.decode('utf-8'))
-        query_state = await process_csv_state_sync_store(state=state, io=text_data)
-
-        # derive the new message with complete csv file data
-        message = {
-            "type": "query_state_direct",
-            "state_id": state.id,
-            "query_state": query_state
-        }
-
-        message_string = json.dumps(message)
-        sync_route = message_router.find_route("processor/state/sync")
-        await sync_route.publish(msg=message_string)
-        # sync_route.flush()
-
-        # state = storage.save_state(state=state)
-
-        return {
-            "status": "success",
-            "message": "file uploaded successfully",
-            "state_id": state.id,
-            "count": state.count
-        }
-    except Exception as e:
-        return {"status": "error", "message": str(e), "count": 0}
-
-
-@state_router.get('/{state_id}/processors')
+@filter_router.post("")
 @check_null_response
-async def fetch(state_id: str):
-    return storage.fetch_processor_state(state_id=state_id)
+async def merge_filter(filter: Filter) -> Filter:
+    filterStorage.insert_filter(filter)
+    return filterStorage.fetch_filter(filter.id)
+    # return storage.load_state(state_id=state_id, load_data=load_data)
+
+
+@check_null_response
+@filter_router.put("/apply")
+async def apply_filter_on_data(filter_id: str, data: Dict[str, str]) -> bool:
+    return filterStorage.apply_filter_on_data(filter_id=filter_id, data=data)
+
+
+@check_null_response
+@filter_router.get("/user/{user_id}")
+async def fetch_filters_by_user(user_id: str) -> Optional[List[Filter]]:
+    return filterStorage.filters.values()
