@@ -15,7 +15,7 @@ dependencies:
   - fastapi
   - pydantic
   - nats-py   # message bus provider NATS
-  - jinja2
+  - mako
   - uvicorn
   - alethic-ism-core
   - alethic-ism-db

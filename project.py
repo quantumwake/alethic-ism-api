@@ -3,9 +3,11 @@ import datetime as dt
 from typing import Optional, List
 from core.base_model import UserProject, WorkflowNode, WorkflowEdge, ProcessorState, ProcessorStatusCode, \
     ProcessorStateDirection
-from core.processor_state import InstructionTemplate, State
+from core.processor_state import InstructionTemplate, State, StateConfig
 from core.processor_state_storage import Processor, ProcessorProvider
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+import token_service
 from environment import storage
 from http_exceptions import check_null_response
 
@@ -57,7 +59,6 @@ async def fetch_project_states(project_id: str) \
 @check_null_response
 async def fetch_project_processor_states(project_id: str) \
         -> Optional[List[ProcessorState]]:
-
     # TODO needs caching likely, or we need to stream this to each user connected,
     #  instead of a POLL mechanism (this was the easiest fastest for now, ...)
     processor_states = storage.fetch_processor_state_routes_by_project_id(project_id=project_id)
@@ -71,9 +72,15 @@ async def fetch_provider_processors(project_id: str) \
     return storage.fetch_processor_providers(project_id=project_id)
 
 
+@project_router.post("/{project_id}/share/link")
+async def share_project(project_id: str, user_id: str = Depends(token_service.verify_jwt)):
+    pass
+
+
 @project_router.get("/{project_id}/clone/{to_user_id}")
 @check_null_response
-async def clone_project(project_id: str, to_user_id: str, project_name: str = None):
+async def clone_project(project_id: str, to_user_id: str, project_name: str = None,
+                        copy_columns: bool = True, copy_data: bool = False) -> bool:
     project = storage.fetch_user_project(project_id=project_id)
     project.user_id = to_user_id
     project.project_id = None
@@ -87,23 +94,63 @@ async def clone_project(project_id: str, to_user_id: str, project_name: str = No
 
     # copy the nodes and edges for the studio
     nodes = storage.fetch_workflow_nodes(project_id=project_id)
-    nodes = {node.node_id: node for node in nodes}
+    if nodes:
+        nodes = {node.node_id: node for node in nodes}
+    else:
+        nodes = {}
 
     edges = storage.fetch_workflow_edges(project_id=project_id)
-    edges = {f"{edge.source_node_id}:{edge.target_node_id}": edge for edge in edges}
+    if edges:
+        edges = {f"{edge.source_node_id}:{edge.target_node_id}": edge for edge in edges}
+    else:
+        edges = {}
 
     state_mapping = {}
     states = storage.fetch_states(project_id=project_id)
     for fetched_state in states:
-        state = storage.load_state(state_id=fetched_state.id, load_data=False)
+        state = storage.load_state(state_id=fetched_state.id, load_data=copy_data)
         old_state_id = state.id
         state.project_id = project.project_id
         state.id = str(uuid.uuid4())
-        state.count = 0
-        state.persisted_position = -1
+
         state.create_date = dt.datetime.utcnow()
         state.update_date = state.create_date
+
+        # reset the persistence position
+        state.persisted_position = -1
+
+        if not copy_data:
+            state.data = {}
+            state.mapping = {}
+
+        # remap all columns
+        if state.columns:
+            for column_name, column_definition in state.columns.items():
+                column_definition.id = None
+
+        if isinstance(state.config, StateConfig) and state.config.template_columns:
+            for tc in state.config.template_columns:
+                tc.id = None
+
+        if isinstance(state.config, StateConfig) and state.config.primary_key:
+            for pk in state.config.primary_key:
+                pk.id = None
+
+        if isinstance(state.config, StateConfig) and state.config.query_state_inheritance:
+            for qsi in state.config.query_state_inheritance:
+                qsi.id = None
+
+        if isinstance(state.config, StateConfig) and state.config.remap_query_state_columns:
+            for rqsc in state.config.remap_query_state_columns:
+                rqsc.id = None
+
+        # save the entire state
         state = storage.save_state(state)
+
+        # update state data position if any
+        if copy_data:
+            # we explicitly update the state count TODO need to figure this out with cache
+            state = storage.update_state_count(state=state)
 
         state_mapping[old_state_id] = state.id
 
@@ -112,49 +159,57 @@ async def clone_project(project_id: str, to_user_id: str, project_name: str = No
         new_node = nodes[old_state_id]
         new_node.node_id = state.id
         new_node.project_id = project.project_id
-        storage.insert_workflow_node(new_node)                  # save the new state workflow node
+        storage.insert_workflow_node(new_node)  # save the new state workflow node
 
     processor_mapping = {}
     processors = storage.fetch_processors(project_id=project_id)
-    for processor in processors:
-        old_processor_id = processor.id
-        processor.project_id = project_id
-        processor.id = str(uuid.uuid4())
-        processor.status = ProcessorStatusCode.CREATED
-        processor = storage.insert_processor(processor=processor)
+    if processors:
+        for processor in processors:
+            old_processor_id = processor.id
+            new_processor_id = str(uuid.uuid4())
+            processor.id = new_processor_id
+            processor.project_id = project.project_id
+            processor.status = ProcessorStatusCode.CREATED
+            processor = storage.insert_processor(processor=processor)
 
-        processor_mapping[old_processor_id] = processor.id
-        new_node = nodes[old_processor_id]
-        new_node.node_id = processor.id
-        new_node.project_id = project.project_id
-        new_node = storage.insert_workflow_node(new_node)       # save the new processor workflow node
+            processor_mapping[old_processor_id] = new_processor_id
+            new_node = nodes[old_processor_id]
+            new_node.node_id = new_processor_id
+            new_node.project_id = project.project_id
+            new_node = storage.insert_workflow_node(new_node)  # save the new processor workflow node
 
-    #
-    process_states = storage.fetch_processor_state_routes_by_project_id(project_id=project_id)
-    for ps in process_states:
-        new_state_id = state_mapping[ps.state_id]
-        new_processor_id = processor_mapping[ps.processor_id]
+        #
+        process_states = storage.fetch_processor_state_routes_by_project_id(project_id=project_id)
+        for ps in process_states:
+            new_state_id = state_mapping[ps.state_id]
+            new_processor_id = processor_mapping[ps.processor_id]
 
-        if ps.direction == ProcessorStateDirection.INPUT:
-            edge = edges[f"{ps.state_id}:{ps.processor_id}"]
-            edge.source_node_id = new_state_id
-            edge.target_node_id = new_processor_id
-            storage.insert_workflow_edge(edge)      # save the new edge
+            if ps.direction == ProcessorStateDirection.INPUT:
+                edge = edges[f"{ps.state_id}:{ps.processor_id}"]
+                edge.source_node_id = new_state_id
+                edge.target_node_id = new_processor_id
+                storage.insert_workflow_edge(edge)  # save the new edge
 
-            ps.id = f"{new_state_id}:{new_processor_id}"
-        else:
-            edge = edges[f"{ps.processor_id}:{ps.state_id}"]
-            edge.target_node_id = new_state_id
-            edge.source_node_id = new_processor_id
-            storage.insert_workflow_edge(edge)      # save the new edge
+                ps.id = f"{new_state_id}:{new_processor_id}"
+            else:
+                edge = edges[f"{ps.processor_id}:{ps.state_id}"]
+                edge.target_node_id = new_state_id
+                edge.source_node_id = new_processor_id
+                storage.insert_workflow_edge(edge)  # save the new edge
 
-            ps.id = f"{new_processor_id}:{new_state_id}"
+                ps.id = f"{new_processor_id}:{new_state_id}"
 
-        ps.internal_id = 0
-        ps.state_id = new_state_id
-        ps.processor_id = new_processor_id
-        ps.status = ProcessorStatusCode.CREATED
-        storage.insert_processor_state_route(ps)
+            ps.internal_id = 0
+            ps.state_id = new_state_id
+            ps.processor_id = new_processor_id
+            ps.status = ProcessorStatusCode.CREATED
+            storage.insert_processor_state_route(ps)
+
+    templates = storage.fetch_templates(project_id=project_id)
+    if templates:
+        for template in templates:
+            template.template_id = None
+            template.project_id = project.project_id
+            storage.insert_template(template)
 
     return True
-
