@@ -6,6 +6,7 @@ from db.processor_state_db_storage import PostgresDatabaseStorage, PostgresDatab
 
 dotenv.load_dotenv()
 
+HUGGING_FACE_TOKEN = os.environ.get("HUGGING_FACE_TOKEN", None)
 DATABASE_URL = os.environ.get("DATABASE_URL", None)
 API_ROOT_PATH = os.environ.get("API_ROOT_PATH", None)
 ROUTING_FILE = os.environ.get("ROUTING_FILE", '.routing.yaml')
