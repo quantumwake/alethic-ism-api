@@ -16,6 +16,7 @@ dependencies:
   - pydantic
   - nats-py   # message bus provider NATS
   - mako
+  - datasets
   - uvicorn
   - alethic-ism-core
   - alethic-ism-db

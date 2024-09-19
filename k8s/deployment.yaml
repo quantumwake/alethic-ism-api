@@ -40,6 +40,12 @@ spec:
             subPath: .firebase-credentials.json
             readOnly: true
         env:
+          - name: HUGGING_FACE_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: alethic-ism-api-secret
+                key: HUGGING_FACE_TOKEN
+
           - name: REDIS_HOST
             valueFrom:
               secretKeyRef:
