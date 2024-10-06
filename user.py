@@ -14,7 +14,7 @@ from http_exceptions import check_null_response
 user_router = APIRouter()
 
 # TODO maybe move the user apis into a separate API,
-#  seems a bit heavy especiailly given that the firebase
+#  seems a bit heavy especially given that the firebase
 #  api does not have a conda package
 
 firebase_credential = credentials.Certificate(FIREBASE_CREDENTIALS_JSON_FILE)
@@ -51,6 +51,12 @@ async def create_user_profile(user_details: dict, response: Response) -> Optiona
 @check_null_response
 async def fetch_user_projects(user_id: str = Depends(token_service.verify_jwt)) -> Optional[List[UserProject]]:
     return storage.fetch_user_projects(user_id=user_id)
+
+
+@user_router.get("")
+@check_null_response
+async def fetch_user(user_id: str = Depends(token_service.verify_jwt)) -> Optional[UserProfile]:
+    return storage.fetch_user_profile(user_id=user_id)
 
 
 @user_router.get("/{user_id}/provider/processors")

@@ -1,8 +1,4 @@
-import os
-from typing import Optional
-from core.processor_state import State
 from fastapi import APIRouter, Depends
-from huggingface_hub import login
 
 from environment import storage, HUGGING_FACE_TOKEN
 from http_exceptions import check_null_response

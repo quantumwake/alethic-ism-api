@@ -20,7 +20,13 @@ async def fetch_usage_group_by_user(user_id: str = Depends(token_service.verify_
             value=user_id,
             use_in_group_by=True,
             use_in_where=True
-        )
+        ),
+        # year=FieldConfig(
+        #     field_name="year",
+        #     value="2024",
+        #     use_in_group_by=True,
+        #     use_in_where=True
+        # ),
     )
     return usage
 

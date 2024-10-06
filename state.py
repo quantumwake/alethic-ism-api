@@ -5,9 +5,10 @@ from typing import Optional, List, Union
 from core.base_model import ProcessorStateDirection
 from core.messaging.base_message_route_model import RouteMessageStatus
 from core.processor_state import State
-from fastapi import UploadFile, File, APIRouter
+from fastapi import UploadFile, File, APIRouter, Depends
 from pydantic import ValidationError, BaseModel
 
+import token_service
 from environment import storage
 from http_exceptions import check_null_response
 from message_router import message_router
@@ -37,6 +38,11 @@ async def merge_state(state: State) -> State:
 async def delete_state_data(state_id: str) -> int:
     result = storage.delete_state_data(state_id=state_id)
     return 1
+
+
+@state_router.delete('/{state_id}')
+async def delete_state(state_id: str, user_id: str = Depends(token_service.verify_jwt),) -> int:
+    return storage.delete_state(state_id=state_id)
 
 
 @state_router.delete("/{state_id}/config/{definition_type}/{id}")
