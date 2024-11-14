@@ -11,6 +11,7 @@ from template import template_router
 from usage import usage_router
 from user import user_router
 from project import project_router
+from validate import validate_router
 from workflow import workflow_router
 from state_subscriber import state_channel_router
 
@@ -73,6 +74,7 @@ app.include_router(template_router, prefix="/template", tags=["templates"])
 app.include_router(monitor_router, prefix="/monitor", tags=["monitors"])
 app.include_router(state_channel_router, prefix="/streams", tags=["streams"])
 app.include_router(dataset_router, prefix="/dataset", tags=["datasets"])
+app.include_router(validate_router, prefix="/validate", tags=["validate"])
 
 
 @app.on_event("startup")

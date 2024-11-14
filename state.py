@@ -41,8 +41,12 @@ async def delete_state_data(state_id: str) -> int:
 
 
 @state_router.delete('/{state_id}')
-async def delete_state(state_id: str, user_id: str = Depends(token_service.verify_jwt),) -> int:
-    return storage.delete_state(state_id=state_id)
+async def delete_state(state_id: str, user_id: str = Depends(token_service.verify_jwt)) -> int:
+    storage.delete_processor_state_routes_by_state_id(state_id=state_id)
+    storage.delete_state_cascade(state_id=state_id)
+    storage.delete_workflow_edges_by_node_id(node_id=state_id)
+    storage.delete_workflow_node(node_id=state_id)
+    return 1
 
 
 @state_router.delete("/{state_id}/config/{definition_type}/{id}")
