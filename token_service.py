@@ -33,8 +33,8 @@ def verify_jwt(credentials: HTTPAuthorizationCredentials = Depends(security)):
 
         # Optionally, you can check additional claims in the payload
         # For example, checking if the token has expired or if the user has the correct roles
-
-        return payload['user_id']  # Return the payload for further use in your route
+        # return "77c17315-3013-5bb8-8c42-32c28618101f"     // TODO NOTE: login bypass
+        return payload['user_id']  # Return theƒj payload for further use in your route
     except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

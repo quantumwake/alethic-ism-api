@@ -1,3 +1,6 @@
+import os
+import time
+
 from dataset import dataset_router
 from filter import filter_router
 from message_router import message_router
@@ -19,6 +22,11 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from environment import API_ROOT_PATH
 from exceptions import CustomException, custom_exception_handler
+
+# set the timezone
+tz = os.environ.get("TZ", "UTC")
+os.environ["TZ"] = tz
+time.tzset()
 
 title = "Instruction State Machine API"
 summary = """This is the interface between the backend and user interface, it allows for 

@@ -2,7 +2,7 @@ import logging
 import os
 
 import dotenv
-from db.processor_state_db_storage import PostgresDatabaseStorage, PostgresDatabaseWithRedisCacheStorage
+from db.postgres_storage_class import PostgresDatabaseStorage
 
 dotenv.load_dotenv()
 

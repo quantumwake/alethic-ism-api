@@ -18,6 +18,20 @@ async def fetch_processor(processor_id: str) \
 
     return storage.fetch_processor(processor_id=processor_id)
 
+@processor_router.delete("/{processor_id}")
+@check_null_response
+async def delete_processor(processor_id: str):
+    routes = storage.fetch_processor_state_route(processor_id=processor_id)
+    if routes:
+        for route in routes:
+            storage.delete_processor_state_route_by_id(processor_state_id=route.id)
+
+    # delete all workflow edges given the node it is connected to, in any direction.
+    storage.delete_workflow_edges_by_node_id(node_id=processor_id)
+
+    # delete the processor and the node
+    storage.delete_processor(processor_id=processor_id)
+    storage.delete_workflow_node(node_id=processor_id)
 
 @processor_router.post("/create")
 @check_null_response

@@ -19,11 +19,10 @@ async def merge_instruction_template(template: InstructionTemplate) -> Instructi
 
 @template_router.post('/create/text')
 async def merge_instruction_template_text(template_id: str,
-                                    template_path: str,
-                                    template_content: str,
-                                    template_type: str,
-                                    project_id: str = None):
-
+                                          template_path: str,
+                                          template_content: str,
+                                          template_type: str,
+                                          project_id: str = None):
     # create an instruction template object
     instruction = InstructionTemplate(
         template_id=template_id,
@@ -34,3 +33,11 @@ async def merge_instruction_template_text(template_id: str,
     )
 
     return merge_instruction_template(instruction)
+
+
+@template_router.put('/{template_id}/rename/{new_name}')
+async def rename_template(template_id: str, new_name: str) -> Optional[InstructionTemplate]:
+    template = storage.fetch_template(template_id=template_id)
+    template.template_path = new_name
+    storage.insert_template(template=template)
+    return template
