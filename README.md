@@ -25,11 +25,10 @@ The Alethic ISM API layer operates atop various processors with diverse function
 - **Updating Models**: Execute `conda install -c ~/miniconda3/envs/local_channel alethic-ism-core alethic-ism-db`.
 
 **Docker Build:**
-- Use `./docker_build_conda_package.sh` to build a Docker image (note: script name subject to change).
+- Use `./docker_build.sh -t krasaee/alethic-ism-api:local` to build a Docker image
 
 ** Required Packages (not available in conda)
+- conda env create -f environment.yaml
+- conda activate alethic-ism-api
 - pip install firebase-admin
 
-For an example and more details, refer to our 
-[Alethic ISM Processor - OpenAI](https://github.com/quantumwake/alethic-ism-processor-openai).
-[Alethic ISM Processor - Anthropic](https://github.com/quantumwake/alethic-ism-processor-anthropic)

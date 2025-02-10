@@ -7,18 +7,6 @@ FROM continuumio/miniconda3
 # Set the working directory
 WORKDIR /app
 
-ARG CONDA_ISM_CORE_PATH
-ARG CONDA_ISM_DB_PATH
-#ARG GITHUB_REPO_URL
-
-# copy the local channel packages (alethic-ism-core, alethic-ism-db)
-COPY ${CONDA_ISM_DB_PATH} .
-COPY ${CONDA_ISM_CORE_PATH} .
-
-# extract the local channel directories
-RUN tar -zxvf $CONDA_ISM_DB_PATH -C /
-RUN tar -zxvf $CONDA_ISM_CORE_PATH -C /
-
 ADD environment.yaml /app/repo/environment.yaml
 
 # Move to the repository directory
@@ -34,9 +22,6 @@ SHELL ["/bin/bash", "--login", "-c"]
 # install the conda build package in base
 RUN conda install -y conda-build -c conda-forge --override-channels
 
-# reindex local channel
-RUN conda index /app/conda/env/local_channel
-
 # Initialize the conda environment
 RUN conda env create -f environment.yaml
 
@@ -45,6 +30,9 @@ RUN conda init bash
 
 # Activate the environment, and make sure it's activated:
 RUN echo "conda activate alethic-ism-api" > ~/.bashrc
+
+# display information about the current activation
+RUN conda activate alethic-ism-api
 
 # display information about the current activation
 RUN conda info
