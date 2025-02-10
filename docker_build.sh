@@ -2,20 +2,19 @@
 
 # Function to print usage
 print_usage() {
-  echo "Usage: $0 [-t tag] [-a architecture]"
-  echo "  -t tag             Docker image tag"
-  echo "  -p platform        Target platform architecture (default: linux/amd64)"
+  echo "Usage: $0 [-t image] [-p architecture]"
+  echo "  -i image           Docker image krasaee/alethic-ism-api:latest"
+  echo "  -p platform        Target platform architecture (linux/amd64, linux/arm64, ...)"
 }
 
 # Default values
-TAG=""
 ARCH="linux/amd64"
 
 # Parse command line arguments
-while getopts 't:a:' flag; do
+while getopts 'i:a:' flag; do
   case "${flag}" in
-    t) TAG="${OPTARG}" ;;
-    a) ARCH="${OPTARG}" ;;
+    i) IMAGE="${OPTARG}" ;;
+    p) ARCH="${OPTARG}" ;;
     *) print_usage
        exit 1 ;;
   esac
@@ -28,10 +27,10 @@ if [ -z "$ARCH" ]; then
 fi
 
 ## Display arguments
-echo "Platform: $ARCH"
-echo "Platform Docker Image Tag: $TAG"
+echo "platform: $ARCH"
+echo "platform image: $IMAGE"
 
 # Build the Docker image which creates the package
 docker build --progress=plain \
-  --platform "$ARCH" -t "$TAG" \
+  --platform "$ARCH" -t "$IMAGE" \
   --no-cache .

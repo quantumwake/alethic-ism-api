@@ -44,7 +44,7 @@ jobs:
         echo "DOCKER IMAGE: $IMAGE"
         
         # build the docker image
-        ./docker_build.sh -t $IMAGE
+        bash docker_build.sh -t $IMAGE
   
         # pass the image to the next step
         echo "IMAGE=$IMAGE" >> "$GITHUB_ENV" # for local variables
@@ -60,13 +60,14 @@ jobs:
       id: push_docker_image
       run: |
         echo "Pushing container file with image $IMAGE"
-        docker push $IMAGE
-
-    - name: Update deployment file
-      run: |
-        echo "Updating deployment file with image $IMAGE"
-        sed -i "s|<IMAGE>|$IMAGE|" $GITHUB_WORKSPACE/k8s/deployment.yaml
-        cat $GITHUB_WORKSPACE/k8s/deployment.yaml
+        bash docker_deploy.sh -i $IMAGE
+#        docker push $IMAGE
+#
+#    - name: Update deployment file
+#      run: |
+#        echo "Updating deployment file with image $IMAGE"
+#        sed -i "s|<IMAGE>|$IMAGE|" $GITHUB_WORKSPACE/k8s/deployment.yaml
+#        cat $GITHUB_WORKSPACE/k8s/deployment.yaml
 
     - name: Install doctl
       uses: digitalocean/action-doctl@v2
