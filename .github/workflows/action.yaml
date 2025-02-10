@@ -1,4 +1,4 @@
-name: Docker Image CI for Workload API
+name: Docker Image CI for Alethic ISM API
 
 on:
   push:
@@ -14,7 +14,7 @@ jobs:
 
     steps:
 
-    - name: Checkout Workload API code
+    - name: Checkout Alethic ISM API code
       id: code_checkout
       uses: actions/checkout@v3
 
@@ -44,7 +44,7 @@ jobs:
         echo "DOCKER IMAGE: $IMAGE"
         
         # build the docker image
-        bash docker_build.sh -t $IMAGE
+        bash docker_build.sh -i $IMAGE
   
         # pass the image to the next step
         echo "IMAGE=$IMAGE" >> "$GITHUB_ENV" # for local variables
