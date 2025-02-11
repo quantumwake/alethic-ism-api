@@ -60,7 +60,7 @@ jobs:
       id: push_docker_image
       run: |
         echo "Pushing container file with image $IMAGE"
-        bash docker_deploy.sh -i $IMAGE
+        bash docker_push.sh -i $IMAGE
 #        docker push $IMAGE
 #
 #    - name: Update deployment file
@@ -78,7 +78,9 @@ jobs:
       run: doctl kubernetes cluster kubeconfig save --expiry-seconds 600 qwake-k8s-cluster
 
     - name: Deploy to DigitalOcean Kubernetes
-      run: kubectl apply -f $GITHUB_WORKSPACE/k8s/deployment.yaml
+      run: |
+        #kubectl apply -f $GITHUB_WORKSPACE/k8s/deployment.yaml
+        bash docker_push.sh -i $IMAGE
 
     - name: Verify deployment
       run: kubectl rollout status deployment/alethic-ism-api-deployment -n alethic
