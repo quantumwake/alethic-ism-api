@@ -16,7 +16,7 @@ build:
 push:
 	./docker_push.sh -i $(IMAGE)
 
-# Deploy the application
+# Deploy the application to kubernetes using the k8s/deployment.yaml as a template.
 deploy:
 	./docker_deploy.sh -i $(IMAGE)
 
