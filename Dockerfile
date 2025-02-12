@@ -12,10 +12,6 @@ ADD environment.yaml /app/repo/environment.yaml
 # Move to the repository directory
 WORKDIR /app/repo
 
-#COPY ./docker_extract_conda_package.sh .
-#COPY ./docker_build_conda_package.sh .
-#COPY ./environment.yaml .
-
 # Force all commands to run in bash
 SHELL ["/bin/bash", "--login", "-c"]
 

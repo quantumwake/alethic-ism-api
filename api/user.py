@@ -7,9 +7,9 @@ from core.utils import general_utils
 from fastapi import APIRouter, Response, Depends
 from firebase_admin import auth, credentials
 
-import token_service
+from api import token_service
 from environment import storage, FIREBASE_CREDENTIALS_JSON_FILE
-from http_exceptions import check_null_response
+from utils.http_exceptions import check_null_response
 
 user_router = APIRouter()
 

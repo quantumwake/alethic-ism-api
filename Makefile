@@ -1,0 +1,28 @@
+# Makefile
+.PHONY: build push deploy all
+
+# Default image name - can be overridden with make IMAGE=your-image-name
+IMAGE ?= krasaee/alethic-ism-api:latest
+
+# Ensure scripts are executable
+init:
+	chmod +x docker_build.sh docker_push.sh docker_deploy.sh
+
+# Build the Docker image using buildpacks
+build:
+	./docker_build.sh -i $(IMAGE)
+
+# Push the Docker image to registry
+push:
+	./docker_push.sh -i $(IMAGE)
+
+# Deploy the application
+deploy:
+	./docker_deploy.sh -i $(IMAGE)
+
+# Build, push and deploy
+all: build push deploy
+
+# Clean up old images and containers (optional)
+clean:
+	@docker system prune -f

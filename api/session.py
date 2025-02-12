@@ -3,9 +3,9 @@ from typing import List
 from core.base_model import SessionMessage, Session
 from fastapi import APIRouter, Depends
 
-import token_service
+from api import token_service
 from environment import storage
-from http_exceptions import check_null_response
+from utils.http_exceptions import check_null_response
 
 session_router = APIRouter()
 

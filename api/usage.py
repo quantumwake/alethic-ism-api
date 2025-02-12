@@ -4,9 +4,9 @@ from core.base_model import UsageReport
 from core.processor_state_storage import FieldConfig
 from fastapi import APIRouter, Depends
 
-import token_service
+from api import token_service
 from environment import storage
-from http_exceptions import check_null_response
+from utils.http_exceptions import check_null_response
 
 usage_router = APIRouter()
 

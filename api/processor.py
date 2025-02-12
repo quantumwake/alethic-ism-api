@@ -5,8 +5,8 @@ from core.processor_state_storage import Processor, ProcessorState
 from fastapi import APIRouter
 
 from environment import storage
-from http_exceptions import check_null_response
-from models import ProcessorStatusUpdated
+from utils.http_exceptions import check_null_response
+from models.models import ProcessorStatusUpdated
 
 processor_router = APIRouter()
 

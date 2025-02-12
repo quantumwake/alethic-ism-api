@@ -7,9 +7,9 @@ from core.processor_state import InstructionTemplate, State, StateConfig
 from core.processor_state_storage import Processor, ProcessorProvider
 from fastapi import APIRouter, Depends
 
-import token_service
+from api import token_service
 from environment import storage
-from http_exceptions import check_null_response
+from utils.http_exceptions import check_null_response
 
 project_router = APIRouter()
 

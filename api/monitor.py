@@ -2,9 +2,9 @@ from typing import Optional, List
 from core.base_model import MonitorLogEvent
 from fastapi import APIRouter, Depends
 
-import token_service
+from api import token_service
 from environment import storage
-from http_exceptions import check_null_response
+from utils.http_exceptions import check_null_response
 
 monitor_router = APIRouter()
 

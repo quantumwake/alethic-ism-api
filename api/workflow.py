@@ -1,10 +1,10 @@
 import uuid
-from typing import Optional, List
+from typing import Optional
 
 from core.base_model import WorkflowNode, WorkflowEdge
 from fastapi import APIRouter
 from environment import storage
-from models import WorkflowEdgeDelete
+from models.models import WorkflowEdgeDelete
 
 workflow_router = APIRouter()
 

@@ -1,19 +1,19 @@
 import io
 import json
-from typing import Optional, List, Union
+from typing import Optional, Union
 
 from core.base_model import ProcessorStateDirection
 from core.messaging.base_message_route_model import RouteMessageStatus
 from core.processor_state import State
 from fastapi import UploadFile, File, APIRouter, Depends
-from pydantic import ValidationError, BaseModel
+from pydantic import ValidationError
 
-import token_service
+from api import token_service
+from api.processor_state_route import SELECTOR_STATE_ROUTER
 from environment import storage
-from http_exceptions import check_null_response
+from utils.http_exceptions import check_null_response
 from message_router import message_router
-from process_file import process_csv_state_sync_store
-from processor_state_route import SELECTOR_STATE_ROUTER
+from utils.process_file import process_csv_state_sync_store
 
 state_router = APIRouter()
 state_router_route = message_router.find_route(SELECTOR_STATE_ROUTER)

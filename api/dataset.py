@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 
 from environment import storage, HUGGING_FACE_TOKEN
-from http_exceptions import check_null_response
+from utils.http_exceptions import check_null_response
 from datasets import Dataset
 
 dataset_router = APIRouter()

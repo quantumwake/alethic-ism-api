@@ -3,9 +3,7 @@ from enum import Enum
 from typing import Optional, Dict, Union, List
 from fastapi import APIRouter
 from pydantic import BaseModel
-from http_exceptions import check_null_response
-
-from core.processor_state import State
+from utils.http_exceptions import check_null_response
 
 filter_router = APIRouter()
 

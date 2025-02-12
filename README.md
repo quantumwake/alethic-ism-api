@@ -1,11 +1,9 @@
 # Alethic Instruction-Based State Machine (API)
 
-**Contact Us:** Feel free to reach out for more information, comments, questions, or to report bugs and experiments.
+The Alethic ISM API is the primary entry point for the Alethic ISM UI and the rest of the Alethic ISM platform. 
 
-**Welcome to the API Layer of Alethic ISM!** While this README is currently brief, more detailed information is on its way. Stay tuned for updates!
-
-**About This Project:** 
-The Alethic ISM API layer operates atop various processors with diverse functionalities. We currently support two instruction processors – Anthropic and OpenAI – and are actively working on integrating more, including self-hosted models like Llama2 and Falcon.
+Here we provide a RESTful API built using FastAPI and provides a simple interface for interacting  with the Alethic ISM
+platform.
 
 **Key Points:**
 - **Processors**: These are engines that transform an input 'State' into an output 'State'.
