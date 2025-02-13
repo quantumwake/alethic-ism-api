@@ -31,6 +31,9 @@ if [ -z "$IMAGE" ]; then
   exit 1
 fi
 
+# derive tag for latest version
+LATEST=$(echo $IMAGE | sed -e 's/\:.*$/:latest/g')
+
 # Display arguments
 echo "Platform: $ARCH"
 echo "Image: $IMAGE"
@@ -46,6 +49,6 @@ if [ "$USE_BUILDPACK" = true ]; then
 else
   echo "Building with Docker..."
   docker build --progress=plain \
-    --platform "$ARCH" -t "$IMAGE" \
+    --platform "$ARCH" -t "$IMAGE" -t $LATEST \
     --no-cache .
 fi
