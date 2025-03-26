@@ -2,13 +2,13 @@
 FROM ghcr.io/astral-sh/uv:debian
 
 # Set the working directory
-WORKDIR /app
+WORKDIR /app/repo
 
 # Copy only the requirements first to leverage Docker cache
-COPY requirements.txt /app
+COPY requirements.txt /app/repo
 
 # Copy the rest of your application code into /app
-COPY . /app/
+COPY . /app/repo/
 
 # Create a virtual environment using uv
 RUN uv venv

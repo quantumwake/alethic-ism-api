@@ -32,11 +32,11 @@ spec:
         imagePullPolicy: Always
         volumeMounts:
           - name: alethic-ism-routes-secret-volume
-            mountPath: /app/.routing.yaml
+            mountPath: /app/repo/.routing.yaml
             subPath: .routing.yaml
             readOnly: true
           - name: alethic-ism-api-secret-config-volume
-            mountPath: /app/.firebase-credentials.json
+            mountPath: /app/repo/.firebase-credentials.json
             subPath: .firebase-credentials.json
             readOnly: true
         env:
