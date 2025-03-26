@@ -1,11 +1,11 @@
 from typing import Optional, List
 
 import firebase_admin
-from core.base_model import UserProject, UserProfile
-from core.processor_state_storage import ProcessorProvider
-from core.utils import general_utils
+# TODO renable this and also add in other providers, maybe we should use something different or implement our own
 from fastapi import APIRouter, Response, Depends
 from firebase_admin import auth, credentials
+from ismcore.model.base_model import UserProfile, UserProject, ProcessorProvider
+from ismcore.utils import general_utils
 
 from api import token_service
 from environment import storage, FIREBASE_CREDENTIALS_JSON_FILE
@@ -17,6 +17,7 @@ user_router = APIRouter()
 #  seems a bit heavy especially given that the firebase
 #  api does not have a conda package
 
+# TODO enable this
 firebase_credential = credentials.Certificate(FIREBASE_CREDENTIALS_JSON_FILE)
 default_app = firebase_admin.initialize_app(credential=firebase_credential)
 
@@ -24,6 +25,8 @@ default_app = firebase_admin.initialize_app(credential=firebase_credential)
 @user_router.post("")
 async def create_user_profile(user_details: dict, response: Response) -> Optional[UserProfile]:
     # logging.info('entered into create_user_profile')
+
+    id_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNzdjMTczMTUtMzAxMy01YmI4LThjNDItMzJjMjg2MTgxMDFmIiwiZXhwIjoxNzQyNjM3NjUyfQ.8G_hihP8HjxgHaePT2DLAGO-kBN66dluaGv9zH1Jvrs"
 
     # Fetch the token and create the appropriate user_id uuid
     id_token = user_details['token']
@@ -45,6 +48,14 @@ async def create_user_profile(user_details: dict, response: Response) -> Optiona
 
     print(f"JWT token: {jwt_token}")
     return user_profile
+
+
+@user_router.get("/{user_id}/{token_uid}/user")
+@check_null_response
+async def fetch_user(token_uid: str) -> str:
+    # TODO check this over
+    return general_utils.calculate_uuid_based_from_string_with_sha256_seed(token_uid)
+    # return storage.fetch_user_profile(user_id=user_id)
 
 
 @user_router.get("/{user_id}/projects")

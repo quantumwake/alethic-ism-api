@@ -1,4 +1,4 @@
-from core.base_model import ProcessorStatusCode
+from ismcore.model.base_model import ProcessorStatusCode
 from pydantic import BaseModel
 
 

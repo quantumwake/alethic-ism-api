@@ -1,11 +1,12 @@
 import uuid
 import datetime as dt
 from typing import Optional, List
-from core.base_model import UserProject, WorkflowNode, WorkflowEdge, ProcessorState, ProcessorStatusCode, \
-    ProcessorStateDirection
-from core.processor_state import InstructionTemplate, State, StateConfig
-from core.processor_state_storage import Processor, ProcessorProvider
 from fastapi import APIRouter, Depends
+from ismcore.model.base_model import (
+    UserProject,
+    Processor, WorkflowNode, WorkflowEdge, InstructionTemplate, \
+    ProcessorState, ProcessorProvider, ProcessorStatusCode, ProcessorStateDirection)
+from ismcore.model.processor_state import State, StateConfig
 
 from api import token_service
 from environment import storage

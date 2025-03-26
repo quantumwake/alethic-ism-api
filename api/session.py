@@ -1,7 +1,7 @@
 from typing import List
 
-from core.base_model import SessionMessage, Session
 from fastapi import APIRouter, Depends
+from ismcore.model.base_model import Session, SessionMessage
 
 from api import token_service
 from environment import storage

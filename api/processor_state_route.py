@@ -1,9 +1,9 @@
 import json
 from typing import Optional
 
-from core.messaging.base_message_route_model import RouteMessageStatus
-from core.processor_state_storage import ProcessorState
 from fastapi import APIRouter
+from ismcore.messaging.base_message_route_model import RouteMessageStatus
+from ismcore.model.base_model import ProcessorState
 from pydantic import ValidationError
 
 from environment import storage

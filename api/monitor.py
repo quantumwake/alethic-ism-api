@@ -1,6 +1,6 @@
 from typing import Optional, List
-from core.base_model import MonitorLogEvent
 from fastapi import APIRouter, Depends
+from ismcore.model.base_model import MonitorLogEvent
 
 from api import token_service
 from environment import storage

@@ -1,5 +1,5 @@
-from core.messaging.base_message_router import Router
-from core.messaging.nats_message_provider import NATSMessageProvider
+from ismcore.messaging.base_message_router import Router
+from ismcore.messaging.nats_message_provider import NATSMessageProvider
 
 from environment import ROUTING_FILE
 

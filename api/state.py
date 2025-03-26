@@ -2,17 +2,17 @@ import io
 import json
 from typing import Optional, Union
 
-from core.base_model import ProcessorStateDirection
-from core.messaging.base_message_route_model import RouteMessageStatus
-from core.processor_state import State
 from fastapi import UploadFile, File, APIRouter, Depends
+from ismcore.messaging.base_message_route_model import RouteMessageStatus
+from ismcore.model.base_model import ProcessorStateDirection
+from ismcore.model.processor_state import State
 from pydantic import ValidationError
 
 from api import token_service
 from api.processor_state_route import SELECTOR_STATE_ROUTER
 from environment import storage
-from utils.http_exceptions import check_null_response
 from message_router import message_router
+from utils.http_exceptions import check_null_response
 from utils.process_file import process_csv_state_sync_store
 
 state_router = APIRouter()
@@ -70,7 +70,7 @@ async def delete_state_column(state_id, column_id) -> int:
 
 
 
-def derive_message_from_input_list(query_state: list[str]):
+def derive_message_from_input_list(route_id: str, query_state: list[str]):
     # for query_state_entry in query_state:
     raise NotImplementedError("input message as list is not implemented")
 
@@ -120,6 +120,7 @@ async def route_forward_query_state_entry(state_id: str, input_value: Union[str,
 
     # user = "krasaee"  # TODO need to extract from jwt
 
+    status = None # TODO need to fix this such that we do not send hundreds of messages.
     # we iterate each processor state route and submit the input value to the processor
     for processor_state in processor_state_routes:
         route_id = processor_state.id

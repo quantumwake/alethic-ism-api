@@ -1,8 +1,7 @@
 from typing import Optional, List
 
-from core.base_model import ProcessorStateDirection, ProcessorStatusCode
-from core.processor_state_storage import Processor, ProcessorState
 from fastapi import APIRouter
+from ismcore.model.base_model import Processor, ProcessorStateDirection, ProcessorState, ProcessorStatusCode
 
 from environment import storage
 from utils.http_exceptions import check_null_response

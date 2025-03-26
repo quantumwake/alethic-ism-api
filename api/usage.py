@@ -1,8 +1,8 @@
 from typing import Optional, List
 
-from core.base_model import UsageReport
-from core.processor_state_storage import FieldConfig
 from fastapi import APIRouter, Depends
+from ismcore.model.base_model import UsageReport
+from ismcore.storage.processor_state_storage import FieldConfig
 
 from api import token_service
 from environment import storage

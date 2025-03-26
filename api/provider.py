@@ -1,7 +1,8 @@
 from typing import Optional, List
 
-from core.processor_state_storage import ProcessorProvider
 from fastapi import APIRouter
+from ismcore.model.base_model import ProcessorProvider
+
 from environment import storage
 from utils.http_exceptions import check_null_response
 

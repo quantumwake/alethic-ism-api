@@ -1,8 +1,9 @@
 import uuid
 from typing import Optional
 
-from core.base_model import WorkflowNode, WorkflowEdge
 from fastapi import APIRouter
+from ismcore.model.base_model import WorkflowNode, WorkflowEdge
+
 from environment import storage
 from models.models import WorkflowEdgeDelete
 

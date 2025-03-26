@@ -7,7 +7,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from starlette import status
 
 # Replace with a secure key
-SECRET_KEY = os.environ.get("SECRET_KEY", "adc7fa1c92a522ff04f465c5d941114cce870f989ac87f0687e6899596be61da")
+SECRET_KEY = os.environ.get("SECRET_KEY", "<hello world>")
 
 # Create an HTTPBearer instance
 security = HTTPBearer()
@@ -34,7 +34,7 @@ def verify_jwt(credentials: HTTPAuthorizationCredentials = Depends(security)):
         # Optionally, you can check additional claims in the payload
         # For example, checking if the token has expired or if the user has the correct roles
         # return "77c17315-3013-5bb8-8c42-32c28618101f"     // TODO NOTE: login bypass
-        return payload['user_id']  # Return theƒj payload for further use in your route
+        return payload['user_id']  # Return payload for further use in your route
     except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

@@ -1,6 +1,7 @@
 from typing import Optional
-from core.processor_state import InstructionTemplate
 from fastapi import APIRouter
+from ismcore.model.base_model import InstructionTemplate
+
 from environment import storage
 
 template_router = APIRouter()

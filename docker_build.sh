@@ -49,6 +49,5 @@ if [ "$USE_BUILDPACK" = true ]; then
 else
   echo "Building with Docker..."
   docker build --progress=plain \
-    --platform "$ARCH" -t "$IMAGE" -t $LATEST \
-    --no-cache .
+    --platform "$ARCH" -t "$IMAGE" -t $LATEST .
 fi

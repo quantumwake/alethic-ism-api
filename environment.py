@@ -2,7 +2,7 @@ import logging
 import os
 
 import dotenv
-from db.postgres_storage_class import PostgresDatabaseStorage
+from ismdb.postgres_storage_class import PostgresDatabaseStorage
 
 dotenv.load_dotenv()
 

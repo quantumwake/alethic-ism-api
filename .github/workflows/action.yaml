@@ -14,20 +14,12 @@ jobs:
 
     steps:
 
-    - name: Checkout Alethic ISM API code
+    - name: Checkout Repository
       id: code_checkout
       uses: actions/checkout@v3
 
-    - name: Install Dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y wget
-        wget https://github.com/mikefarah/yq/releases/download/v4.40.5/yq_linux_amd64 -O /usr/local/bin/yq
-        chmod +x /usr/local/bin/yq
-
     - name: Assign Environment Variables for Build & Deployment Process
       id: setup_variables
-
       run: |
         COMMIT_ID=$(echo $GITHUB_SHA | head -c7)
         NAMESPACE="krasaee"
@@ -37,7 +29,7 @@ jobs:
         echo "COMMIT_ID=$COMMIT_ID" >> "$GITHUB_ENV" # for local variables
         echo "IMAGE=$IMAGE" >> "$GITHUB_ENV" # for local variables
 
-    - name: Build container image
+    - name: Build Container Image
       id: build_docker_image
       run: |
         echo "COMMIT ID: $COMMIT_ID"
@@ -61,13 +53,6 @@ jobs:
       run: |
         echo "Pushing container file with image $IMAGE"
         bash docker_push.sh -i $IMAGE
-#        docker push $IMAGE
-#
-#    - name: Update deployment file
-#      run: |
-#        echo "Updating deployment file with image $IMAGE"
-#        sed -i "s|<IMAGE>|$IMAGE|" $GITHUB_WORKSPACE/k8s/deployment.yaml
-#        cat $GITHUB_WORKSPACE/k8s/deployment.yaml
 
     - name: Install doctl
       uses: digitalocean/action-doctl@v2

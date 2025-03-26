@@ -1,7 +1,8 @@
 import traceback
 from typing import Dict, List, Any
-from fastapi import APIRouter, Depends, Body
-from core.compiler.secure_runnable import SecureRunnableBuilder, SecurityConfig
+from fastapi import APIRouter, Body
+from ismcore.compiler.secure_runnable import SecurityConfig, SecureRunnableBuilder
+
 validate_router = APIRouter()
 
 

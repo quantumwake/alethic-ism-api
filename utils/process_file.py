@@ -3,7 +3,8 @@ import asyncio
 from io import StringIO
 from typing import List, Dict
 
-from core.processor_state import State
+from ismcore.model.processor_state import State
+
 
 async def process_file(state: State, filename: str):
     with open(filename, 'rb') as file:

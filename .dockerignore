@@ -1,0 +1,7 @@
+.env
+.venv
+.firebase-credentials.json
+.k8s
+.github
+_version.py
+src/alethic_ism_core.egg-info
