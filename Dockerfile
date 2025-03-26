@@ -5,7 +5,7 @@ FROM ghcr.io/astral-sh/uv:debian
 WORKDIR /app
 
 # Copy only the requirements first to leverage Docker cache
-COPY requirements.txt /app/
+COPY requirements.txt /app
 
 # Copy the rest of your application code into /app
 COPY . /app/
