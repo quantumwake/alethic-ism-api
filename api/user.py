@@ -24,10 +24,6 @@ default_app = firebase_admin.initialize_app(credential=firebase_credential)
 
 @user_router.post("")
 async def create_user_profile(user_details: dict, response: Response) -> Optional[UserProfile]:
-    # logging.info('entered into create_user_profile')
-
-    id_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNzdjMTczMTUtMzAxMy01YmI4LThjNDItMzJjMjg2MTgxMDFmIiwiZXhwIjoxNzQyNjM3NjUyfQ.8G_hihP8HjxgHaePT2DLAGO-kBN66dluaGv9zH1Jvrs"
-
     # Fetch the token and create the appropriate user_id uuid
     id_token = user_details['token']
     decoded_token = auth.verify_id_token(id_token)
@@ -49,6 +45,15 @@ async def create_user_profile(user_details: dict, response: Response) -> Optiona
     print(f"JWT token: {jwt_token}")
     return user_profile
 
+
+@user_router.get("/{uid}")
+async def fetch_user_profile(uid: str, response: Response) -> Optional[UserProfile]:
+    user_id = general_utils.calculate_uuid_based_from_string_with_sha256_seed(uid)
+    user_profile = storage.fetch_user_profile(user_id=user_id)
+    if user_profile is None:
+        response.status_code = 404
+        return None
+    return user_profile
 
 @user_router.get("/{user_id}/{token_uid}/user")
 @check_null_response

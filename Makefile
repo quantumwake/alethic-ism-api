@@ -10,15 +10,15 @@ init:
 
 # Build the Docker image using buildpacks
 build:
-	./docker_build.sh -i $(IMAGE)
+	sh docker_build.sh -i $(IMAGE)
 
 # Push the Docker image to registry
 push:
-	./docker_push.sh -i $(IMAGE)
+	sh docker_push.sh -i $(IMAGE)
 
 # Deploy the application to kubernetes using the k8s/deployment.yaml as a template.
 deploy:
-	./docker_deploy.sh -i $(IMAGE)
+	sh docker_deploy.sh -i $(IMAGE)
 
 # Build, push and deploy
 all: build push deploy
