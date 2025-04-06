@@ -2,7 +2,7 @@ import io
 import json
 from typing import Optional, Union
 
-from fastapi import UploadFile, File, APIRouter, Depends
+from fastapi import UploadFile, File, APIRouter, Depends, Query
 from ismcore.messaging.base_message_route_model import RouteMessageStatus
 from ismcore.model.base_model import ProcessorStateDirection
 from ismcore.model.processor_state import State
@@ -21,9 +21,13 @@ state_router_route = message_router.find_route(SELECTOR_STATE_ROUTER)
 
 @state_router.get('/{state_id}')
 @check_null_response
-async def fetch_state(state_id: str, load_data: bool = False) -> Optional[State]:
-    return storage.load_state(state_id=state_id, load_data=load_data)
-
+async def fetch_state(
+    state_id: str,
+    load_data: bool = False,
+    offset: int = Query(..., description="Offset for pagination"),
+    limit: int = Query(..., description="Limit for pagination"),
+) -> Optional[State]:
+    return storage.load_state(state_id=state_id, load_data=load_data, offset=offset, limit=limit)
 
 @state_router.post("/create")
 @check_null_response
@@ -150,16 +154,25 @@ async def upload_file(state_id: str, file: UploadFile = File(...)):
         text_data = io.StringIO(data.decode('utf-8'))
         query_state = await process_csv_state_sync_store(state=state, io=text_data)
 
-        # derive the new message with complete csv file data
-        message = {
-            "type": "query_state_direct",
-            "state_id": state.id,
-            "query_state": query_state
-        }
-
-        message_string = json.dumps(message)
+        ## publish blocks of data instead of a one shot dataset
+        offset = 0
+        chunks = 200
         sync_route = message_router.find_route("processor/state/sync")
-        await sync_route.publish(msg=message_string)
+        while offset < len(query_state):
+            block = query_state[offset:offset + chunks]
+            offset += chunks
+
+            # derive the new message with complete csv file data
+            message = {
+                "type": "query_state_direct",
+                "state_id": state.id,
+                "query_state": block
+            }
+
+            message_string = json.dumps(message)
+            await sync_route.publish(msg=message_string)
+
+
         # sync_route.flush()
 
         # state = storage.save_state(state=state)

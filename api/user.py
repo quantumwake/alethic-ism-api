@@ -4,11 +4,13 @@ import firebase_admin
 # TODO renable this and also add in other providers, maybe we should use something different or implement our own
 from fastapi import APIRouter, Response, Depends
 from firebase_admin import auth, credentials
-from ismcore.model.base_model import UserProfile, UserProject, ProcessorProvider
+from ismcore.model.base_model import UserProfile, UserProject, ProcessorProvider, UserProfileCredential
 from ismcore.utils import general_utils
+from pydantic import BaseModel
 
 from api import token_service
-from environment import storage, FIREBASE_CREDENTIALS_JSON_FILE
+from environment import storage, FIREBASE_CREDENTIALS_JSON_FILE, LOCAL_USER_CREATION
+from models.models import UserProfileCreateRequest
 from utils.http_exceptions import check_null_response
 
 user_router = APIRouter()
@@ -45,6 +47,57 @@ async def create_user_profile(user_details: dict, response: Response) -> Optiona
     print(f"JWT token: {jwt_token}")
     return user_profile
 
+
+@user_router.post("/basic")
+async def create_user_profile_basic(request: UserProfileCreateRequest, response: Response) -> Optional[UserProfile]:
+    if not LOCAL_USER_CREATION:
+        raise Exception("local user creation is disabled")
+
+    if not request.email:
+        raise Exception("email cannot be empty")
+
+    # TODO check if the password is empty
+    if not request.credentials:
+        raise Exception("credentials cannot be empty")
+
+    user_id = general_utils.calculate_uuid_based_from_string_with_sha256_seed(request.email)
+    user_profile = storage.fetch_user_profile(user_id=user_id)
+
+    # Check if the user profile already exists, if it does we don't need to create it again
+    if not user_profile:
+        # Create the user profile in the database
+        storage.insert_user_profile(user_profile=UserProfile(
+            user_id=user_id,
+            email=request.email,
+            name=request.name,
+            max_agentic_units=10000))
+
+    # Check if user profile credential already exists
+    user_profile_credential = storage.fetch_user_profile_credential(user_id=user_id)
+    if not user_profile_credential:
+        # TODO encrypt the password (this is a placeholder)
+        encrypted_password = request.credentials
+
+        # insert the credential into the database
+        user_profile_credential = storage.insert_user_profile_credential(user_profile_credential=UserProfileCredential(
+            user_id=user_id,
+            type="encrypted_password",
+            credentials=encrypted_password
+        ))
+
+    # Check credentials before generating the JWT
+    encrypted_password_check = user_profile_credential.credentials
+    if request.credentials != encrypted_password_check:
+        raise Exception("credentials do not match")
+
+    # Generate a JWT for your application
+    jwt_token = token_service.generate_jwt(user_id)
+
+    # Set the JWT in the response header
+    response.headers['Authorization'] = f"Bearer {jwt_token}"
+
+    print(f"JWT token: {jwt_token}")
+    return user_profile
 
 @user_router.get("/{uid}")
 async def fetch_user_profile(uid: str, response: Response) -> Optional[UserProfile]:

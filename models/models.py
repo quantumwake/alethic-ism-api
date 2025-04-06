@@ -11,3 +11,8 @@ class ProcessorStatusUpdated(BaseModel):
     processor_id: str
     status: ProcessorStatusCode
     success: bool
+
+class UserProfileCreateRequest(BaseModel):
+    email: str
+    name: str
+    credentials: str
