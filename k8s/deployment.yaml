@@ -81,6 +81,18 @@ spec:
               secretKeyRef:
                 name: alethic-ism-api-secret
                 key: SECRET_KEY
+
+          - name: ENABLED_FIREBASE_AUTH
+            valueFrom:
+              secretKeyRef:
+                name: alethic-ism-api-secret
+                key: ENABLED_FIREBASE_AUTH
+
+          - name: ENABLED_LOCAL_AUTH
+            valueFrom:
+              secretKeyRef:
+                name: alethic-ism-api-secret
+                key: ENABLED_LOCAL_AUTH
         ports:
         - containerPort: 80
       imagePullSecrets:
