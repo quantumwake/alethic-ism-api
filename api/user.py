@@ -9,7 +9,7 @@ from ismcore.utils import general_utils
 from pydantic import BaseModel
 
 from api import token_service
-from environment import storage, FIREBASE_CREDENTIALS_JSON_FILE, LOCAL_USER_CREATION
+from environment import storage, FIREBASE_CREDENTIALS_JSON_FILE, ENABLED_LOCAL_AUTH
 from models.models import UserProfileCreateRequest
 from utils.http_exceptions import check_null_response
 
@@ -50,8 +50,8 @@ async def create_user_profile(user_details: dict, response: Response) -> Optiona
 
 @user_router.post("/basic")
 async def create_user_profile_basic(request: UserProfileCreateRequest, response: Response) -> Optional[UserProfile]:
-    if not LOCAL_USER_CREATION:
-        raise Exception("local user creation is disabled")
+    if not ENABLED_LOCAL_AUTH:
+        raise Exception("local user creation is disabled, set but caution with ENABLED_LOCAL_AUTH=true")
 
     if not request.email:
         raise Exception("email cannot be empty")
