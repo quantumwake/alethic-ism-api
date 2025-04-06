@@ -12,7 +12,6 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "<hello world>")
 # Create an HTTPBearer instance
 security = HTTPBearer()
 
-
 def generate_jwt(user_id: str):
     expiration = datetime.datetime.utcnow() + datetime.timedelta(hours=24)  # JWT expiration (24 hours)
 

@@ -13,6 +13,7 @@ ROUTING_FILE = os.environ.get("ROUTING_FILE", '.routing.yaml')
 FIREBASE_CREDENTIALS_JSON_FILE = os.environ.get("FIREBASE_CREDENTIALS_JSON_FILE", ".firebase-credentials.json")
 LOG_LEVEL = os.environ.get("LOG_LEVEL", logging.INFO)
 ENABLED_LOCAL_AUTH = os.environ.get("ENABLED_LOCAL_AUTH", False)
+ENABLED_FIREBASE_AUTH = os.environ.get("ENABLED_FIREBASE_AUTH", False)
 
 if not DATABASE_URL:
     raise ValueError(f'invalid database url, no DATABASE_URL env was specified')

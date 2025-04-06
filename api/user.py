@@ -1,17 +1,15 @@
 from typing import Optional, List
 
-import firebase_admin
 # TODO renable this and also add in other providers, maybe we should use something different or implement our own
 from fastapi import APIRouter, Response, Depends
-from firebase_admin import auth, credentials
 from ismcore.model.base_model import UserProfile, UserProject, ProcessorProvider, UserProfileCredential
 from ismcore.utils import general_utils
-from pydantic import BaseModel
 
 from api import token_service
-from environment import storage, FIREBASE_CREDENTIALS_JSON_FILE, ENABLED_LOCAL_AUTH
+from environment import storage, ENABLED_LOCAL_AUTH, ENABLED_FIREBASE_AUTH
 from models.models import UserProfileCreateRequest
 from utils.http_exceptions import check_null_response
+
 
 user_router = APIRouter()
 
@@ -19,13 +17,39 @@ user_router = APIRouter()
 #  seems a bit heavy especially given that the firebase
 #  api does not have a conda package
 
-# TODO enable this
-firebase_credential = credentials.Certificate(FIREBASE_CREDENTIALS_JSON_FILE)
-default_app = firebase_admin.initialize_app(credential=firebase_credential)
+firebase_app = None
+def initialize_firebase_app():
+    if not ENABLED_FIREBASE_AUTH:
+        raise Exception("Firebase authentication is not enabled, set ENABLED_FIREBASE_AUTH=true")
+    global firebase_app
 
+    if firebase_app is not None:
+        return firebase_app
+
+    """
+    Initialize the Firebase app with the credentials JSON file.
+    This is used to verify the Firebase ID tokens.
+    """
+    try:
+        import firebase_admin
+        from environment import FIREBASE_CREDENTIALS_JSON_FILE
+        from firebase_admin import auth, credentials
+        firebase_credential = credentials.Certificate(FIREBASE_CREDENTIALS_JSON_FILE)
+        firebase_app = firebase_admin.initialize_app(credential=firebase_credential)
+        return firebase_app
+    except Exception as e:
+        print(f"Error initializing Firebase app: {e}")
+        return None
 
 @user_router.post("")
 async def create_user_profile(user_details: dict, response: Response) -> Optional[UserProfile]:
+    if not ENABLED_FIREBASE_AUTH:
+        raise Exception("Firebase authentication is not enabled, set ENABLED_FIREBASE_AUTH=true")
+
+    # Initialize the Firebase app
+    from firebase_admin import auth
+    initialize_firebase_app()
+
     # Fetch the token and create the appropriate user_id uuid
     id_token = user_details['token']
     decoded_token = auth.verify_id_token(id_token)
