@@ -41,8 +41,8 @@ def initialize_firebase_app():
         print(f"Error initializing Firebase app: {e}")
         return None
 
-@user_router.post("")
-async def create_user_profile(user_details: dict, response: Response) -> Optional[UserProfile]:
+@user_router.post("/google")
+async def create_user_profile_google(user_details: dict, response: Response) -> Optional[UserProfile]:
     if not ENABLED_FIREBASE_AUTH:
         raise Exception("Firebase authentication is not enabled, set ENABLED_FIREBASE_AUTH=true")
 
@@ -58,8 +58,12 @@ async def create_user_profile(user_details: dict, response: Response) -> Optiona
     # Generate a user_id based on the Firebase UID
     user_id = general_utils.calculate_uuid_based_from_string_with_sha256_seed(uid)
 
+    # fetch values from firebase user details
+    email = user_details['user']['email']
+    name = user_details['user']['displayName']
+
     # Create the user profile in the database
-    user_profile = UserProfile(user_id=user_id)
+    user_profile = UserProfile(user_id=user_id,email=email, name=name)
     storage.insert_user_profile(user_profile=user_profile)
 
     # Generate a JWT for your application
