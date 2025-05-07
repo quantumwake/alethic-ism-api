@@ -10,6 +10,7 @@ from environment import storage, ENABLED_LOCAL_AUTH, ENABLED_FIREBASE_AUTH
 from models.models import UserProfileCreateRequest
 from utils.http_exceptions import check_null_response
 
+from firebase_admin import auth
 
 user_router = APIRouter()
 
@@ -47,7 +48,6 @@ async def create_user_profile_google(user_details: dict, response: Response) -> 
         raise Exception("Firebase authentication is not enabled, set ENABLED_FIREBASE_AUTH=true")
 
     # Initialize the Firebase app
-    from firebase_admin import auth
     initialize_firebase_app()
 
     # Fetch the token and create the appropriate user_id uuid
