@@ -76,33 +76,27 @@ Kubernetes deployment includes:
 
 ## Getting Started
 
-### Required Repositories (optional as it is already part of pypi)
-```
-git clone https://github.com/quantumwake/alethic-ism-core.git
-git clone https://github.com/quantumwake/alethic-ism-db.git
-```
+### Dependencies
+The required packages `alethic-ism-core` and `alethic-ism-db` are published to PyPI and will be installed automatically through the requirements.txt file. The source code for these packages is located in the `../alethic-ism-core` and `../alethic-ism-db` directories but you don't need to manually install them.
 
 ### Building with Docker
 ```
 ./docker_build.sh -t krasaee/alethic-ism-api:local
 ```
 
-## Release Process
+## Version Management
 
-### Create a new release tag
+To bump the version number and create a new tag, use the Makefile:
+
 ```shell
-git tag -a v0.1.0 -m "Release v0.1.0"
+make version
 ```
 
-### Push just that tag
-```shell
-git push origin v0.1.0
-```
-
-### Push all tags (optional- to push commits + tags)
-```shell
-git push --follow-tags
-```
+This will:
+1. Fetch the latest tags
+2. Increment the patch version
+3. Create a new tag
+4. Push the tag to the repository
 
 ## License
 Alethic ISM is under a DUAL licensing model, please refer to [LICENSE.md](LICENSE.md).
