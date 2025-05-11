@@ -24,8 +24,18 @@ jobs:
       - name: Determine & expose IMAGE
         id: set-image
         run: |
-          IMG=$(make --quiet print-image)
+          # Capture the output more explicitly to avoid any extra output
+          IMG=$(make --quiet print-image | tr -d '\n')
+          
+          # Debug - Print the value we're capturing
+          echo "Captured image value: $IMG"
+          
+          # Set the output
           echo "image=$IMG" >> "$GITHUB_OUTPUT"
+          
+          # Debug - Print what was actually set in the output
+          echo "GITHUB_OUTPUT content after setting image:"
+          cat $GITHUB_OUTPUT
 
       - name: Build
         run: make build IMAGE=${{ steps.set-image.outputs.image }}
@@ -44,17 +54,23 @@ jobs:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
 
-
-
     steps:
       - name: Checkout (for k8s manifests)
         uses: actions/checkout@v3
 
-      - name: Show IMAGE that we’ll deploy
+      - name: Debug - Show all outputs from build-push job
+        run: |
+          echo "All outputs from build-push job: ${{ toJSON(needs.build-push.outputs) }}"
+
+      - name: Show IMAGE that we'll deploy
         env:
           IMAGE: ${{ needs.build-push.outputs.image }}
         run: |
           echo "→ ENV: IMAGE $IMAGE"
+          if [ -z "$IMAGE" ]; then
+            echo "ERROR: IMAGE is empty!"
+            exit 1
+          fi
 
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
