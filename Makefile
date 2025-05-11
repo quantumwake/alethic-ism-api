@@ -1,48 +1,43 @@
 # Makefile
-.PHONY: build push deploy all
-
-# Determine VERSION:
-#  - if we're on a tag: use that tag name
-#  - otherwise fall back to short SHA
-VERSION := $(shell \
-  if git describe --exact-match --tags >/dev/null 2>&1; then \
-    git describe --exact-match --tags; \
-  else \
-    git rev-parse --short HEAD; \
-  fi \
-)
-
-IMAGE_BASE ?= "krasaee/alethic-ism-api"
+.PHONY: build swag clean version all
 
 # Default image name - can be overridden with make IMAGE=your-image-name
-IMAGE ?= $(IMAGE_BASE):$(VERSION)
+IMAGE ?= krasaee/alethic-ism-api:latest
 
-# Ensure scripts are executable
-init:
-	chmod +x docker_build.sh docker_push.sh docker_deploy.sh
-
-# Build the Docker image using buildpacks
+# Build the Docker image directly
 build:
-	@echo "Makefile build: IMAGE=$(IMAGE)"
-	sh docker_build.sh -i $(IMAGE)
+	docker build -t $(IMAGE) .
 
-# Push the Docker image to registry
-push:
-	@echo "Makefile push: IMAGE=$(IMAGE)"
-	sh docker_push.sh -i $(IMAGE)
+# Version bump (patch version)
+version:
+	@echo "Bumping patch version..."
+	@git fetch --tags
+	@LATEST_TAG=$$(git describe --tags --abbrev=0 2>/dev/null || echo ""); \
+	if [[ -z "$$LATEST_TAG" ]]; then \
+		MAJOR=0; MINOR=1; PATCH=0; \
+		OLD_TAG="<none>"; \
+	else \
+		OLD_TAG="$$LATEST_TAG"; \
+		VERSION="$${LATEST_TAG#v}"; \
+		IFS='.' read -r MAJOR MINOR PATCH <<< "$$VERSION"; \
+		PATCH=$$((PATCH + 1)); \
+	fi; \
+	NEW_TAG="v$${MAJOR}.$${MINOR}.$${PATCH}"; \
+	git tag -a "$$NEW_TAG" -m "Release $$NEW_TAG"; \
+	git push origin "$$NEW_TAG"; \
+	echo "➜ bumped $${OLD_TAG} → $${NEW_TAG}"
 
-# Deploy the application to kubernetes using the k8s/deployment.yaml as a template.
-deploy:
-	@echo "Makefile deploy: IMAGE=$(IMAGE)"
-	sh docker_deploy.sh -i $(IMAGE)
-
-# at the bottom of your Makefile
-print-image:
-	@echo $(IMAGE)
-
-# Build, push and deploy
-all: build push deploy
-
-# Clean up old images and containers (optional)
+# Clean up old images and containers
 clean:
-	@docker system prune -f
+	docker system prune -f
+
+# Show help
+help:
+	@echo "Available targets:"
+	@echo "  build    - Build Docker image"
+	@echo "  version  - Bump patch version and create git tag"
+	@echo "  clean    - Clean up old Docker images and containers"
+	@echo "  help     - Show this help message"
+	@echo ""
+	@echo "Variables:"
+	@echo "  IMAGE    - Docker image name (default: krasaee/alethic-ism-api:latest)"
