@@ -33,6 +33,10 @@ push:
 deploy:
 	sh docker_deploy.sh -i $(IMAGE)
 
+# at the bottom of your Makefile
+print-image:
+	@echo $(IMAGE)
+
 # Build, push and deploy
 all: build push deploy
 
