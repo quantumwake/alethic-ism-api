@@ -1,3 +1,5 @@
+from typing import Optional
+
 from ismcore.model.base_model import ProcessorStatusCode
 from pydantic import BaseModel
 
@@ -16,3 +18,8 @@ class UserProfileCreateRequest(BaseModel):
     email: str
     name: str
     credentials: str
+
+class BasicResponse(BaseModel):
+    success: bool
+    message: Optional[str] = None
+    data: Optional[dict] = None

@@ -1,7 +1,10 @@
 import io
 import json
-from typing import Optional, Union
+import openpyxl
 
+from typing import Optional, Union
+from io import BytesIO
+from fastapi.responses import StreamingResponse
 from fastapi import UploadFile, File, APIRouter, Depends, Query
 from ismcore.messaging.base_message_route_model import RouteMessageStatus
 from ismcore.model.base_model import ProcessorStateDirection
@@ -18,7 +21,6 @@ from utils.process_file import process_csv_state_sync_store
 state_router = APIRouter()
 state_router_route = message_router.find_route(SELECTOR_STATE_ROUTER)
 
-
 @state_router.get('/{state_id}')
 @check_null_response
 async def fetch_state(
@@ -26,8 +28,61 @@ async def fetch_state(
     load_data: bool = False,
     offset: int = Query(..., description="Offset for pagination"),
     limit: int = Query(..., description="Limit for pagination"),
+    user_id: str = Depends(token_service.verify_jwt)
 ) -> Optional[State]:
     return storage.load_state(state_id=state_id, load_data=load_data, offset=offset, limit=limit)
+
+
+@state_router.get(
+    "/{state_id}/export",
+    summary="Export state as Excel",
+    response_class=StreamingResponse,
+)
+async def export_state_excel(
+    state_id: str,
+    load_data: bool = False,
+    offset: int | None = Query(..., description="Offset for pagination"),
+    limit: int | None = Query(..., description="Limit for pagination"),
+    user_id: str = Depends(token_service.verify_jwt)
+) -> StreamingResponse:
+    # 1. Load your state (with data)
+    state = storage.load_state(
+        state_id=state_id, load_data=load_data, offset=offset, limit=limit
+    )
+
+    # 2. Create a workbook and active sheet
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"State {state_id}"
+
+    # 3. Write header row
+    columns = list(state.columns.keys())  # or however you get the ordered keys
+    for col_idx, col_name in enumerate(columns, start=1):
+        ws.cell(row=1, column=col_idx, value=col_name)
+
+    # 4. Write data rows (placeholders)
+    for row_idx in range(state.count):
+        for col_idx, col_name in enumerate(columns, start=1):
+            # replace this placeholder with your real data lookup:
+            # placeholder = f"{{state.data['{col_name}'].values[{row_idx}]}}"
+            value = state.data[col_name].values[row_idx]
+            ws.cell(row=row_idx + 2, column=col_idx, value=value)
+
+    # 5. Save to a BytesIO buffer
+    stream = BytesIO()
+    wb.save(stream)
+    stream.seek(0)
+
+    # 6. Return as a streaming response with proper headers
+    filename = f"state_{state_id}.xlsx"
+    return StreamingResponse(
+        stream,
+        media_type=(
+            "application/vnd.openxmlformats-"
+            "officedocument.spreadsheetml.sheet"
+        ),
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 @state_router.post("/create")
 @check_null_response

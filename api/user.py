@@ -72,7 +72,7 @@ async def create_user_profile_google(user_details: dict, response: Response) -> 
     # Set the JWT in the response header
     response.headers['Authorization'] = f"Bearer {jwt_token}"
 
-    print(f"JWT token: {jwt_token}")
+    # print(f"JWT token: {jwt_token}")
     return user_profile
 
 
