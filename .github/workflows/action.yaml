@@ -2,7 +2,7 @@ name: Build and Deploy
 
 on:
   push:
-    branches: [ "main" ]
+#    branches: [ "main" ]
     tags:   [ "v*" ]
   pull_request:
     branches: [ "main" ]
@@ -41,15 +41,18 @@ jobs:
 
   deploy:
     needs: build-push
-    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
-    env:
-      IMAGE: ${{ needs.build-push.outputs.image }}
+    if: startsWith(github.ref, 'refs/tags/')
+
+
+
     steps:
       - name: Checkout (for k8s manifests)
         uses: actions/checkout@v3
 
       - name: Show IMAGE that we’ll deploy
+        env:
+          IMAGE: ${{ needs.build-push.outputs.image }}
         run: |
           echo "→ ENV: IMAGE $IMAGE"
 
@@ -62,6 +65,8 @@ jobs:
         run: doctl kubernetes cluster kubeconfig save --expiry-seconds 600 qwake-k8s-cluster
 
       - name: Deploy to Kubernetes
+        env:
+          IMAGE: ${{ needs.build-push.outputs.image }}
         run: |
           echo "→ make deploy using IMAGE=$IMAGE"
           make deploy IMAGE=$IMAGE
