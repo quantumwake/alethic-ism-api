@@ -73,21 +73,21 @@ jobs:
             echo "ERROR: IMAGE is empty!"
             exit 1
           fi
-#
-#      - name: Install doctl
-#        uses: digitalocean/action-doctl@v2
-#        with:
-#          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-#
-#      - name: Save DO kubeconfig
-#        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 600 qwake-k8s-cluster
-#
-#      - name: Deploy to Kubernetes
-#        env:
-#          IMAGE: ${{ needs.build-push.outputs.image }}
-#        run: |
-#          echo "→ make deploy using IMAGE=$IMAGE"
-#          make deploy IMAGE=$IMAGE
-#
-#      - name: Verify rollout
-#        run: kubectl rollout status deployment/alethic-ism-api-deployment -n alethic
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Save DO kubeconfig
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 600 qwake-k8s-cluster
+
+      - name: Deploy to Kubernetes
+        env:
+          IMAGE: ${{ needs.build-push.outputs.image }}
+        run: |
+          echo "→ make deploy using IMAGE=$IMAGE"
+          make deploy IMAGE=$IMAGE
+
+      - name: Verify rollout
+        run: kubectl rollout status deployment/alethic-ism-api-deployment -n alethic
