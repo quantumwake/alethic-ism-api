@@ -23,14 +23,17 @@ init:
 
 # Build the Docker image using buildpacks
 build:
+	@echo "Makefile build: IMAGE=$(IMAGE)"
 	sh docker_build.sh -i $(IMAGE)
 
 # Push the Docker image to registry
 push:
+	@echo "Makefile push: IMAGE=$(IMAGE)"
 	sh docker_push.sh -i $(IMAGE)
 
 # Deploy the application to kubernetes using the k8s/deployment.yaml as a template.
 deploy:
+	@echo "Makefile deploy: IMAGE=$(IMAGE)"
 	sh docker_deploy.sh -i $(IMAGE)
 
 # at the bottom of your Makefile

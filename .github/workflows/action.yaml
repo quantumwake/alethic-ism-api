@@ -56,7 +56,9 @@ jobs:
         run: doctl kubernetes cluster kubeconfig save --expiry-seconds 600 qwake-k8s-cluster
 
       - name: Deploy to Kubernetes
-        run: make deploy IMAGE=${{ needs.build-push.outputs.image }}
+        run: |
+          echo "→ passing IMAGE into make: $IMAGE"
+          make deploy IMAGE=${{ needs.build-push.outputs.image }}
 
       - name: Verify rollout
         run: kubectl rollout status deployment/alethic-ism-api-deployment -n alethic
