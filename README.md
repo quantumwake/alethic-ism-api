@@ -19,7 +19,26 @@ The Alethic ISM API is the primary entry point for the Alethic ISM UI and the re
 - Use `./docker_build.sh -t krasaee/alethic-ism-api:local` to build a Docker image
 
 ** Required Packages (not available in conda)
-- `pip install uv`
+
+`pip install uv`
+
+## Release Version
+
+### Create a new release tag
+```shell
+  git tag -a v0.1.0 -m "Release v0.1.0"
+```
+
+### Push just that tag
+```shell
+  git push origin v0.1.0
+```
+
+### Push all tags (optional- to push commits + tags)
+```shell
+  git push --follow-tags
+```
+
 
 ## License
 Alethic ISM is under a DUAL licensing model, please refer to [LICENSE.md](LICENSE.md).

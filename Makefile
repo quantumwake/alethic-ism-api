@@ -1,8 +1,21 @@
 # Makefile
 .PHONY: build push deploy all
 
+# Determine VERSION:
+#  - if we're on a tag: use that tag name
+#  - otherwise fall back to short SHA
+VERSION := $(shell \
+  if git describe --exact-match --tags >/dev/null 2>&1; then \
+    git describe --exact-match --tags; \
+  else \
+    git rev-parse --short HEAD; \
+  fi \
+)
+
+IMAGE_BASE ?= "krasaee/alethic-ism-api"
+
 # Default image name - can be overridden with make IMAGE=your-image-name
-IMAGE ?= krasaee/alethic-ism-api:latest
+IMAGE ?= $(IMAGE_BASE):$(VERSION)
 
 # Ensure scripts are executable
 init:
