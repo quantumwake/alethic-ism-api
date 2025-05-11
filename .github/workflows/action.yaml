@@ -64,7 +64,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          
+
       - name: Debug - Show all outputs from build-push job
         run: |
           echo "All outputs from build-push job: ${{ toJSON(needs.build-push.outputs) }}"
@@ -103,14 +103,19 @@ jobs:
         env:
           GITHUB_TAG: ${{ github.ref_name }}
         run: |
-          # find the previous tag
-          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^)
-          echo "Generating changelog from $PREV_TAG to $GITHUB_TAG"
-          
-          # build a bullet-list of commit messages
-          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
-          git log $PREV_TAG..$GITHUB_TAG --pretty=format:'- %s' >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          # 1) find the previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 "${GITHUB_TAG}^")
+          echo "Changelog from $PREV_TAG → $GITHUB_TAG"
+  
+          # 2) grab your commits (bullet list). If no commits, we still want an empty body.
+          CHANGELOG=$(git log "$PREV_TAG..$GITHUB_TAG" --pretty=format:'- %s' || true)
+  
+          # 3) write a multi-line output safely
+          {
+            printf 'CHANGELOG<<EOF\n'
+            printf '%s\n' "$CHANGELOG"
+            printf 'EOF\n'
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
         uses: actions/create-release@v1
