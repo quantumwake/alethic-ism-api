@@ -24,10 +24,8 @@ jobs:
       - name: Determine & expose IMAGE
         id: set-image
         run: |
-#          echo "IMAGE=$(make --quiet print-image)" >> "$GITHUB_OUTPUT"
           IMG=$(make --quiet print-image)
           echo "image=$IMG" >> "$GITHUB_OUTPUT"
-        # you’ll add a `print-image` target to your Makefile to echo $(IMAGE)
 
       - name: Build
         run: make build IMAGE=${{ steps.set-image.outputs.image }}
@@ -52,7 +50,8 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Show IMAGE that we’ll deploy
-        run: echo "→ ENV IMAGE is '$IMAGE'"
+        run: |
+          echo "→ ENV: IMAGE $IMAGE"
 
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
@@ -61,11 +60,6 @@ jobs:
 
       - name: Save DO kubeconfig
         run: doctl kubernetes cluster kubeconfig save --expiry-seconds 600 qwake-k8s-cluster
-
-#      - name: Deploy to Kubernetes
-#        run: |
-#          echo "→ passing IMAGE into make: $IMAGE"
-#          make deploy IMAGE=${{ needs.build-push.outputs.image }}
 
       - name: Deploy to Kubernetes
         run: |
