@@ -91,3 +91,31 @@ jobs:
 
       - name: Verify rollout
         run: kubectl rollout status deployment/alethic-ism-api-deployment -n alethic
+
+      # This step generates a changelog and creates a GitHub release
+      - name: Generate changelog
+        id: changelog
+        env:
+          GITHUB_TAG: ${{ github.ref_name }}
+        run: |
+          # find the previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^)
+          echo "Generating changelog from $PREV_TAG to $GITHUB_TAG"
+          
+          # build a bullet-list of commit messages
+          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+          git log $PREV_TAG..$GITHUB_TAG --pretty=format:'- %s' >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name:    ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          body: |
+            ## 📝 Changelog
+            ${{ steps.changelog.outputs.CHANGELOG }}
+          draft: false
+          prerelease: false
