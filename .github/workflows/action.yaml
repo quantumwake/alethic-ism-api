@@ -24,7 +24,9 @@ jobs:
       - name: Determine & expose IMAGE
         id: set-image
         run: |
-          echo "IMAGE=$(make --quiet print-image)" >> "$GITHUB_OUTPUT"
+#          echo "IMAGE=$(make --quiet print-image)" >> "$GITHUB_OUTPUT"
+          IMG=$(make --quiet print-image)
+          echo "image=$IMG" >> "$GITHUB_OUTPUT"
         # you’ll add a `print-image` target to your Makefile to echo $(IMAGE)
 
       - name: Build
@@ -43,9 +45,14 @@ jobs:
     needs: build-push
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
+    env:
+      IMAGE: ${{ needs.build-push.outputs.image }}
     steps:
       - name: Checkout (for k8s manifests)
         uses: actions/checkout@v3
+
+      - name: Show IMAGE that we’ll deploy
+        run: echo "→ ENV IMAGE is '$IMAGE'"
 
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
@@ -55,10 +62,15 @@ jobs:
       - name: Save DO kubeconfig
         run: doctl kubernetes cluster kubeconfig save --expiry-seconds 600 qwake-k8s-cluster
 
+#      - name: Deploy to Kubernetes
+#        run: |
+#          echo "→ passing IMAGE into make: $IMAGE"
+#          make deploy IMAGE=${{ needs.build-push.outputs.image }}
+
       - name: Deploy to Kubernetes
         run: |
-          echo "→ passing IMAGE into make: $IMAGE"
-          make deploy IMAGE=${{ needs.build-push.outputs.image }}
+          echo "→ make deploy using IMAGE=$IMAGE"
+          make deploy IMAGE=$IMAGE
 
       - name: Verify rollout
         run: kubectl rollout status deployment/alethic-ism-api-deployment -n alethic
