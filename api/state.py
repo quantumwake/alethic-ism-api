@@ -87,7 +87,7 @@ async def export_state_excel(
 @state_router.post("/create")
 @check_null_response
 async def merge_state(state: State) -> State:
-    return storage.save_state(state=state, options={
+    storage.save_state(state=state, options={
         "force_update_column": True
     })
 

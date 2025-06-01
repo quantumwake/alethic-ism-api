@@ -1,7 +1,8 @@
 alethic-ism-core
 alethic-ism-db
 python-dotenv
-psycopg2
+#psycopg2
+psycopg2-binary
 python-multipart
 restrictedpython
 #redis

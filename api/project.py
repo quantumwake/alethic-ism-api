@@ -53,7 +53,15 @@ async def fetch_project_instruction_templates(project_id: str) -> Optional[List[
 @check_null_response
 async def fetch_project_states(project_id: str) \
         -> Optional[List[State]]:
-    return storage.fetch_state(project_id=project_id)
+    states = storage.fetch_states(project_id=project_id)
+    if not states:
+        return None
+
+    for index, state in enumerate(states):
+        states[index] = storage.load_state(state_id=state.id, load_data=False)
+
+    return states
+
 
 
 @project_router.get("/{project_id}/processor/states")
