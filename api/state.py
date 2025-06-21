@@ -32,7 +32,6 @@ async def fetch_state(
 ) -> Optional[State]:
     return storage.load_state(state_id=state_id, load_data=load_data, offset=offset, limit=limit)
 
-
 @state_router.get(
     "/{state_id}/export",
     summary="Export state as Excel",
