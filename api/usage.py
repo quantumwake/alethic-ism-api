@@ -11,7 +11,7 @@ from utils.http_exceptions import check_null_response
 usage_router = APIRouter()
 
 
-@usage_router.get("/user/{user_id}")
+@usage_router.get("/user")
 @check_null_response
 async def fetch_usage_group_by_user(user_id: str = Depends(token_service.verify_jwt)) -> Optional[List[UsageReport]]:
     usage = storage.fetch_usage_report(
@@ -29,7 +29,6 @@ async def fetch_usage_group_by_user(user_id: str = Depends(token_service.verify_
         # ),
     )
     return usage
-
 
 @usage_router.get("/user/{user_id}/project/{project_id}")
 @check_null_response

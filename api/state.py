@@ -86,8 +86,10 @@ async def export_state_excel(
 @state_router.post("/create")
 @check_null_response
 async def merge_state(state: State) -> State:
+    # TODO we should propagate this as a CQRS event to the state machine instead of saving it directly
     storage.save_state(state=state, options={
-        "force_update_column": True
+        "force_update_column": True,
+        "force_update_count": False,
     })
 
 
