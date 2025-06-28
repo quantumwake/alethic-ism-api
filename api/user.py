@@ -63,8 +63,16 @@ async def create_user_profile_google(user_details: dict, response: Response) -> 
     name = user_details['user']['displayName']
 
     # Create the user profile in the database
-    user_profile = UserProfile(user_id=user_id,email=email, name=name)
-    storage.insert_user_profile(user_profile=user_profile)
+
+    # Check if the user profile already exists; if yes, we don't need to create it again
+    user_profile = storage.fetch_user_profile(user_id=user_id)
+    if not user_profile:
+        user_profile = UserProfile(
+            user_id=user_id,
+            email=email,
+            name=name,
+            max_agentic_units=10000)
+        storage.insert_user_profile(user_profile=user_profile)
 
     # Generate a JWT for your application
     jwt_token = token_service.generate_jwt(user_id)
