@@ -31,14 +31,14 @@ async def fetch_processors(project_id: str) \
 
 @project_router.get("/{project_id}/workflow/nodes")
 @check_null_response
-async def fetch_project_workflow_nodes(project_id: str) \
+async def fetch_project_workflow_nodes(project_id: str, user_id: str = Depends(token_service.verify_jwt)) \
         -> Optional[List[WorkflowNode]]:
     return storage.fetch_workflow_nodes(project_id=project_id)
 
 
 @project_router.get("/{project_id}/workflow/edges")
 @check_null_response
-async def fetch_project_workflow_edges(project_id: str) \
+async def fetch_project_workflow_edges(project_id: str, user_id: str = Depends(token_service.verify_jwt)) \
         -> Optional[List[WorkflowEdge]]:
     return storage.fetch_workflow_edges(project_id=project_id)
 
