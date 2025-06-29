@@ -92,7 +92,6 @@ async def merge_state(state: State) -> State:
         "force_update_count": False,
     })
 
-
 @state_router.delete('/{state_id}/data')
 @check_null_response
 async def delete_state_data(state_id: str) -> int:
