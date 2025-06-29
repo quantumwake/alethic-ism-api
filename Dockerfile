@@ -18,7 +18,7 @@ RUN . .venv/bin/activate && \
     apt-get update && \
     apt-get install -y git cmake build-essential libpq-dev python3-dev && \
     uv pip install --upgrade pip && \
-    uv pip install -r requirements.txt -U
+    uv pip install -r requirements.txt -U --no-cache
 
 # (Optional) Verify uvicorn installation by displaying its version
 RUN . .venv/bin/activate && uvicorn --version
