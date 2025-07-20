@@ -1,8 +1,9 @@
 from typing import Optional, List
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from ismcore.model.base_model import Processor, ProcessorStateDirection, ProcessorState, ProcessorStatusCode
 
+from api import token_service
 from environment import storage
 from utils.http_exceptions import check_null_response
 from models.models import ProcessorStatusUpdated
@@ -10,15 +11,13 @@ from models.models import ProcessorStatusUpdated
 processor_router = APIRouter()
 
 
-@processor_router.get("/{processor_id}")
 @check_null_response
-async def fetch_processor(processor_id: str) \
-        -> Optional[Processor]:
-
+@processor_router.get("/{processor_id}")
+async def fetch_processor(processor_id: str, user_id: str = Depends(token_service.verify_jwt)) -> Processor | None:
     return storage.fetch_processor(processor_id=processor_id)
 
-@processor_router.delete("/{processor_id}")
 @check_null_response
+@processor_router.delete("/{processor_id}")
 async def delete_processor(processor_id: str):
     routes = storage.fetch_processor_state_route(processor_id=processor_id)
     if routes:
@@ -47,11 +46,15 @@ async def fetch_processor_states(
         direction: ProcessorStateDirection = ProcessorStateDirection.INPUT) \
         -> Optional[List[ProcessorState]]:
 
-    return storage.fetch_processor_state_route(
+    connected_states =  storage.fetch_processor_state_route(
         processor_id=processor_id,
         direction=direction
     )
 
+    if not connected_states:
+        return []
+
+    return connected_states
 
 @processor_router.post("/{processor_id}/status/{status}")
 @check_null_response

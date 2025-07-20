@@ -2,6 +2,7 @@ import uuid
 import datetime as dt
 from typing import Optional, List
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from ismcore.model.base_model import (
     UserProject,
     Processor, WorkflowNode, WorkflowEdge, InstructionTemplate, \
@@ -73,6 +74,26 @@ async def fetch_project_processor_states(project_id: str) \
     processor_states = storage.fetch_processor_state_routes_by_project_id(project_id=project_id)
     return processor_states
 
+@project_router.get("/{project_id}")
+@check_null_response
+async def fetch_project(project_id: str, user_id: str = Depends(token_service.verify_jwt)) -> Optional[UserProject]:
+    """
+    Fetch a project by its ID.
+    :param project_id: The ID of the project to fetch.
+    :param user_id: The ID of the user making the request.
+    :return: The UserProject object if found, otherwise None.
+    """
+    return storage.fetch_user_project(project_id=project_id)
+
+
+async def delete_project(project_id: str, user_id: str = Depends(token_service.verify_jwt)) -> bool:
+    """
+    Delete a project by its ID.
+    :param project_id: The ID of the project to delete.
+    :param user_id: The ID of the user making the request.
+    :return: True if the project was deleted successfully, otherwise False.
+    """
+    return storage.delete_user_project(project_id=project_id)
 
 @project_router.get("/{project_id}/provider/processors")
 @check_null_response
@@ -86,16 +107,22 @@ async def share_project(project_id: str, user_id: str = Depends(token_service.ve
     pass
 
 
-@project_router.get("/{project_id}/clone/{to_user_id}")
+class CloneProjectRequest(BaseModel):
+    to_user_id: str
+    project_name: Optional[str] = None
+    copy_columns: bool = True
+    copy_data: bool = False
+
+
+@project_router.post("/{project_id}/clone")
 @check_null_response
-async def clone_project(project_id: str, to_user_id: str, project_name: str = None,
-                        copy_columns: bool = True, copy_data: bool = False) -> bool:
+async def clone_project(project_id: str, request: CloneProjectRequest) -> bool:
     project = storage.fetch_user_project(project_id=project_id)
-    project.user_id = to_user_id
+    project.user_id = request.to_user_id
     project.project_id = None
     project.created_date = None
-    if project_name:
-        project.project_name = project_name
+    if request.project_name:
+        project.project_name = request.project_name
     else:
         project.project_name = f"12 testing cloning of {project.project_name}"
 
@@ -117,7 +144,7 @@ async def clone_project(project_id: str, to_user_id: str, project_name: str = No
     state_mapping = {}
     states = storage.fetch_states(project_id=project_id)
     for fetched_state in states:
-        state = storage.load_state(state_id=fetched_state.id, load_data=copy_data)
+        state = storage.load_state(state_id=fetched_state.id, load_data=request.copy_data)
         old_state_id = state.id
         state.project_id = project.project_id
         state.id = str(uuid.uuid4())
@@ -128,7 +155,7 @@ async def clone_project(project_id: str, to_user_id: str, project_name: str = No
         # reset the persistence position
         state.persisted_position = -1
 
-        if not copy_data:
+        if not request.copy_data:
             state.data = {}
             state.mapping = {}
 
@@ -157,7 +184,7 @@ async def clone_project(project_id: str, to_user_id: str, project_name: str = No
         state = storage.save_state(state)
 
         # update state data position if any
-        if copy_data:
+        if request.copy_data:
             # we explicitly update the state count TODO need to figure this out with cache
             state = storage.update_state_count(state=state)
 
