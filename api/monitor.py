@@ -11,8 +11,7 @@ monitor_router = APIRouter()
 
 @monitor_router.post("/project/{project_id}")
 @check_null_response
-async def fetch_monitor_log_events_by_project_id(project_id: str, user_id=Depends(token_service.verify_jwt)) -> \
-        Optional[List[MonitorLogEvent]]:
+async def fetch_monitor_log_events_by_project_id(project_id: str, user_id=Depends(token_service.verify_jwt)) -> List[MonitorLogEvent] | None:
     return storage.fetch_monitor_log_events(
         user_id=user_id,
         project_id=project_id
@@ -21,8 +20,7 @@ async def fetch_monitor_log_events_by_project_id(project_id: str, user_id=Depend
 
 @monitor_router.post("/state/{state_id}")
 @check_null_response
-async def fetch_monitor_log_events_by_id(state_id: str, user_id=Depends(token_service.verify_jwt)) -> Optional[
-    List[MonitorLogEvent]]:
+async def fetch_monitor_log_events_by_id(state_id: str, user_id=Depends(token_service.verify_jwt)) -> List[MonitorLogEvent] | None:
     processor_states = storage.fetch_processor_state(state_id=state_id)
 
     if not processor_states:
@@ -39,8 +37,7 @@ async def fetch_monitor_log_events_by_id(state_id: str, user_id=Depends(token_se
 
 @monitor_router.post("/route/{route_id}")
 @check_null_response
-async def fetch_monitor_log_events_by_route_id(route_id: str, user_id=Depends(token_service.verify_jwt)) \
-        -> Optional[List[MonitorLogEvent]]:
+async def fetch_monitor_log_events_by_route_id(route_id: str, user_id=Depends(token_service.verify_jwt)) -> List[MonitorLogEvent] | None:
     # there should only be one when searching by route_id
     route_details = storage.fetch_processor_state_route(route_id=route_id)
     if not route_details:
