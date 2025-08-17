@@ -164,6 +164,10 @@ async def clone_project(project_id: str, request: CloneProjectRequest) -> bool:
             for column_name, column_definition in state.columns.items():
                 column_definition.id = None
 
+        if isinstance(state.config, StateConfig) and state.config.state_join_key:
+            for tc in state.config.state_join_key:
+                tc.id = None
+
         if isinstance(state.config, StateConfig) and state.config.template_columns:
             for tc in state.config.template_columns:
                 tc.id = None
