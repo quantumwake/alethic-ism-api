@@ -32,6 +32,34 @@ async def fetch_state(
 ) -> Optional[State]:
     return storage.load_state(state_id=state_id, load_data=load_data, offset=offset, limit=limit)
 
+
+def _write_excel_row(worksheet, row_index: int, row_data: dict, column_mapping: dict):
+    """Write a single row to the Excel worksheet."""
+    excel_row = row_index + 2  # +2 for 1-based indexing and header row
+    for col_name, col_value in row_data.items():
+        if col_name in column_mapping:
+            worksheet.cell(row=excel_row, column=column_mapping[col_name], value=col_value)
+
+
+def _process_chunk_rows(rows, worksheet, column_mapping: dict):
+    """Process database rows and write them to Excel worksheet."""
+    current_row_data = {}
+    current_data_index = None
+
+    for col_name, data_index, data_value in rows:
+        # New row detected - write previous row to Excel
+        if current_data_index is not None and data_index != current_data_index:
+            _write_excel_row(worksheet, current_data_index, current_row_data, column_mapping)
+            current_row_data = {}
+
+        current_data_index = data_index
+        if col_name:
+            current_row_data[col_name] = data_value
+
+    # Write the last row in the chunk
+    if current_data_index is not None:
+        _write_excel_row(worksheet, current_data_index, current_row_data, column_mapping)
+
 @state_router.get(
     "/{state_id}/export",
     summary="Export state as Excel",
@@ -39,48 +67,51 @@ async def fetch_state(
 )
 async def export_state_excel(
     state_id: str,
-    load_data: bool = False,
-    offset: int | None = Query(..., description="Offset for pagination"),
-    limit: int | None = Query(..., description="Limit for pagination"),
+    chunk_size: int = Query(1000, description="Number of rows to load per chunk"),
     user_id: str = Depends(token_service.verify_jwt)
 ) -> StreamingResponse:
-    # 1. Load your state (with data)
-    state = storage.load_state(
-        state_id=state_id, load_data=load_data, offset=offset, limit=limit
-    )
+    # Load state metadata
+    state_meta = storage.load_state_metadata(state_id=state_id)
+    if not state_meta:
+        raise ValueError(f"State {state_id} not found")
 
-    # 2. Create a workbook and active sheet
+    # Initialize Excel workbook
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = f"State {state_id}"
+    ws.title = f"State {state_id}"[:31]  # Excel sheet names max 31 chars
 
-    # 3. Write header row
-    columns = list(state.columns.keys())  # or however you get the ordered keys
+    # Write header row
+    columns = list(state_meta.columns.keys())
+    column_mapping = {col_name: idx + 1 for idx, col_name in enumerate(columns)}
     for col_idx, col_name in enumerate(columns, start=1):
         ws.cell(row=1, column=col_idx, value=col_name)
 
-    # 4. Write data rows (placeholders)
-    for row_idx in range(state.count):
-        for col_idx, col_name in enumerate(columns, start=1):
-            # replace this placeholder with your real data lookup:
-            # placeholder = f"{{state.data['{col_name}'].values[{row_idx}]}}"
-            value = state.data[col_name].values[row_idx]
-            ws.cell(row=row_idx + 2, column=col_idx, value=value)
+    # Fetch and write data in chunks
+    offset = 0
+    total_count = state_meta.count
 
-    # 5. Save to a BytesIO buffer
+    while offset < total_count:
+        rows = storage.fetch_state_data_chunk_for_export(
+            state_id=state_id,
+            offset=offset,
+            limit=chunk_size
+        )
+
+        if not rows:
+            break
+
+        _process_chunk_rows(rows, ws, column_mapping)
+        offset += chunk_size
+
+    # Save to BytesIO and return
     stream = BytesIO()
     wb.save(stream)
     stream.seek(0)
 
-    # 6. Return as a streaming response with proper headers
-    filename = f"state_{state_id}.xlsx"
     return StreamingResponse(
         stream,
-        media_type=(
-            "application/vnd.openxmlformats-"
-            "officedocument.spreadsheetml.sheet"
-        ),
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="state_{state_id}.xlsx"'},
     )
 
 @state_router.post("/create")
