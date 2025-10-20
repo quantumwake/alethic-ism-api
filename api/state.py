@@ -1,9 +1,10 @@
 import io
 import json
 import openpyxl
+import tempfile
+import os
 
 from typing import Optional, Union
-from io import BytesIO
 from fastapi.responses import StreamingResponse
 from fastapi import UploadFile, File, APIRouter, Depends, Query
 from ismcore.messaging.base_message_route_model import RouteMessageStatus
@@ -60,6 +61,18 @@ def _process_chunk_rows(rows, worksheet, column_mapping: dict):
     if current_data_index is not None:
         _write_excel_row(worksheet, current_data_index, current_row_data, column_mapping)
 
+
+def _file_iterator(file_path: str, chunk_size: int = 8192):
+    """Generator to read file in chunks and clean up after streaming."""
+    try:
+        with open(file_path, 'rb') as file:
+            while chunk := file.read(chunk_size):
+                yield chunk
+    finally:
+        # Clean up the temporary file after streaming
+        if os.path.exists(file_path):
+            os.unlink(file_path)
+
 @state_router.get(
     "/{state_id}/export",
     summary="Export state as Excel",
@@ -103,13 +116,13 @@ async def export_state_excel(
         _process_chunk_rows(rows, ws, column_mapping)
         offset += chunk_size
 
-    # Save to BytesIO and return
-    stream = BytesIO()
-    wb.save(stream)
-    stream.seek(0)
+    # Save to temporary file and stream
+    with tempfile.NamedTemporaryFile(mode='wb', suffix='.xlsx', delete=False) as tmp_file:
+        tmp_path = tmp_file.name
+        wb.save(tmp_file.name)
 
     return StreamingResponse(
-        stream,
+        _file_iterator(tmp_path),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="state_{state_id}.xlsx"'},
     )
