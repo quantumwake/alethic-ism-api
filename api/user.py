@@ -1,6 +1,6 @@
 from typing import Optional, List
 
-# TODO re-ennable this and also add in other providers, maybe we should use something different or implement our own
+# TODO re-enable this and also add in other providers, maybe we should use something different or implement our own
 from fastapi import APIRouter, Response, Depends
 from ismcore.model.base_model import UserProfile, UserProject, ProcessorProvider, UserProfileCredential
 from ismcore.utils import general_utils

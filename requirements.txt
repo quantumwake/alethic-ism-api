@@ -1,7 +1,6 @@
-alethic-ism-core==1.0.35
-alethic-ism-db==1.0.34
+alethic-ism-core==1.0.42
+alethic-ism-db==1.0.37
 python-dotenv
-#psycopg2
 psycopg2-binary
 python-multipart
 restrictedpython
