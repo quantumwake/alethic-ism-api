@@ -10,30 +10,46 @@ from utils.http_exceptions import check_null_response
 
 usage_router = APIRouter()
 
+#
+# @usage_router.get("/user")
+# @check_null_response
+# async def fetch_usage_group_by_user(user_id: str = Depends(token_service.verify_jwt)) -> Optional[List[UsageReport]]:
+#     usage = storage.fetch_usage_report(
+#         user_id=FieldConfig("user_id", value=user_id, use_in_group_by=True, use_in_where=True),
+#         input_count=FieldConfig("input_count", value=None, aggregate="SUM"),
+#         input_cost=FieldConfig("input_cost", value=None, aggregate="SUM"),
+#         input_tokens=FieldConfig("input_tokens", value=None, aggregate="SUM"),
+#         input_price=FieldConfig("input_price", value=None, aggregate="MAX"),
+#
+#         output_count=FieldConfig("output_count", value=None, aggregate="SUM"),
+#         output_cost=FieldConfig("output_cost", value=None, aggregate="SUM"),
+#         output_tokens=FieldConfig("output_tokens", value=None, aggregate="SUM"),
+#         output_price=FieldConfig("output_price", value=None, aggregate="MAX"),
+#
+#         total_tokens=FieldConfig("total_tokens", value=None, aggregate="SUM"),
+#         total_cost=FieldConfig("total_cost", value=None, aggregate="SUM"),
+#     )
+#     return usage
 
-@usage_router.get("/user")
-@check_null_response
-async def fetch_usage_group_by_user(user_id: str = Depends(token_service.verify_jwt)) -> Optional[List[UsageReport]]:
-    usage = storage.fetch_usage_report(
-        user_id=FieldConfig("user_id", value=user_id, use_in_group_by=True, use_in_where=True),
-        input_count=FieldConfig("input_count", value=None, aggregate="SUM"),
-        input_cost=FieldConfig("input_cost", value=None, aggregate="SUM"),
-        input_tokens=FieldConfig("input_tokens", value=None, aggregate="SUM"),
-        input_price=FieldConfig("input_price", value=None, aggregate="MAX"),
 
-        output_count=FieldConfig("output_count", value=None, aggregate="SUM"),
-        output_cost=FieldConfig("output_cost", value=None, aggregate="SUM"),
-        output_tokens=FieldConfig("output_tokens", value=None, aggregate="SUM"),
-        output_price=FieldConfig("output_price", value=None, aggregate="MAX"),
+@usage_router.get("/project/{project_id}/percentages")
+async def fetch_project_usage_percentages(project_id: str, user_id: str = Depends(token_service.verify_jwt)) -> Optional[UserProjectCurrentUsageReport]:
+    """
+    Fetch current usage percentages for the authenticated user.
 
-        total_tokens=FieldConfig("total_tokens", value=None, aggregate="SUM"),
-        total_cost=FieldConfig("total_cost", value=None, aggregate="SUM"),
-    )
-    return usage
+    Returns usage percentages across different time periods (minute, hour, day, month, year)
+    for both tokens and costs. Percentages are calculated against the user's tier limits.
 
+    Returns None if the user has no usage yet.
+    """
+
+    if project_id is None:
+        return None
+
+    user_current_usage = storage.fetch_user_project_current_usage_report(user_id=user_id, project_id=project_id)
+    return user_current_usage
 
 @usage_router.get("/user/percentages")
-@check_null_response
 async def fetch_user_usage_percentages(user_id: str = Depends(token_service.verify_jwt)) -> Optional[UserProjectCurrentUsageReport]:
     """
     Fetch current usage percentages for the authenticated user.
