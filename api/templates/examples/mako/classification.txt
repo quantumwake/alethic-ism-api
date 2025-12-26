@@ -1,0 +1,10 @@
+Classify the following text into one of the categories: ${categories}
+
+Text: "${text}"
+
+```json
+{
+  "category": "[selected category]",
+  "confidence": "[high/medium/low]",
+  "reasoning": "[brief explanation]"
+}```

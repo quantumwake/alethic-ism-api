@@ -1,0 +1,21 @@
+class Runnable(BaseSecureRunnable):
+    def init(self):
+        self.context['sum'] = 0
+        self.context['count'] = 0
+
+    def process(self, queries: List[Any]) -> List[Any]:
+        for query in queries:
+            self.context['sum'] += query.get('value', 0)
+            self.context['count'] += 1
+
+        avg = self.context['sum'] / self.context['count'] if self.context['count'] > 0 else 0
+
+        return [{
+            'running_sum': self.context['sum'],
+            'running_count': self.context['count'],
+            'running_average': avg
+        }]
+
+    def process_stream(self, query: Dict) -> Any:
+        result = self.process([query])[0]
+        yield json.dumps(result, indent=2)

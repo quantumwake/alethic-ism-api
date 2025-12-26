@@ -1,0 +1,24 @@
+Process the following data record: ${data}
+
+% if data.get('priority') == 'high':
+URGENT: This requires immediate attention.
+% endif
+
+Summary:
+- ID: ${data.get('id', 'N/A')}
+- Status: ${data.get('status', 'pending')}
+- Priority: ${data.get('priority', 'normal')}
+
+% if data.get('metadata'):
+Additional Information:
+% for key, value in data['metadata'].items():
+  - ${key}: ${value}
+% endfor
+% endif
+
+Output as JSON:
+{
+  "processed": true,
+  "record_id": "${data.get('id')}",
+  "priority_level": "${data.get('priority', 'normal')}"
+}

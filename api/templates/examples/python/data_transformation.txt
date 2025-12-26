@@ -1,0 +1,26 @@
+class Runnable(BaseSecureRunnable):
+    def init(self):
+        self.context['processed'] = 0
+
+    def process(self, queries: List[Any]) -> List[Any]:
+        results = []
+        for query in queries:
+            ## filter out invalid entries
+            if not query.get('valid', True):
+                continue
+
+            ## transform the data
+            results.append({
+                'id': query.get('id'),
+                'value': query.get('value', 0) * 2,
+                'processed_at': datetime.now().isoformat()
+            })
+            self.context['processed'] += 1
+
+        self.logger.info(f"Processed {self.context['processed']} total records")
+        return results
+
+    def process_stream(self, query: Dict) -> Any:
+        result = self.process([query])
+        if result:
+            yield json.dumps(result[0], indent=2)

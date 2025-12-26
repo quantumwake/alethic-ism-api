@@ -1,0 +1,9 @@
+You are a helpful assistant. Continue the conversation naturally.
+
+% if context:
+Previous context: ${context}
+% endif
+
+User: ${user_message}
+
+Respond helpfully and concisely.

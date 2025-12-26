@@ -1,0 +1,10 @@
+Summarize the following content: "${content}"
+
+Provide a concise summary focusing on key points.
+
+```json
+{
+  "summary": "[concise summary]",
+  "key_points": ["point 1", "point 2", "point 3"],
+  "word_count": [number]
+}```

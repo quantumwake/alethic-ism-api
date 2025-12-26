@@ -1,0 +1,15 @@
+Extract the following information from the text:
+- Names
+- Dates
+- Locations
+- Key facts
+
+Text: "${text}"
+
+```json
+{
+  "names": [],
+  "dates": [],
+  "locations": [],
+  "key_facts": []
+}```

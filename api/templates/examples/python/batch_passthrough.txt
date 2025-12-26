@@ -1,0 +1,13 @@
+## Template to customize a python state
+class Runnable(BaseSecureRunnable):
+    ## any initialization parameters you want to save (on a per event basis)
+    def init(self):
+        self.context['counter'] = 0
+
+    ## if the state is using a python state type (batch processing)
+    def process(self, queries: List[Any]) -> List[Any]:
+        return queries
+
+    ## if the state is using a stream state type (one at a time)
+    def process_stream(self, query: Dict) -> Any:
+        yield json.dumps(query, indent=2)

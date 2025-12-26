@@ -1,0 +1,9 @@
+Answer the following question in brevity: "${question}".
+
+Output your response in the following JSON format:
+
+```json
+{
+ "answer": "[answer in brevity]",
+ "justification": "[justification for your answer]"
+}```

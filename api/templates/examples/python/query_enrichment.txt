@@ -1,0 +1,20 @@
+class Runnable(BaseSecureRunnable):
+    def init(self):
+        pass
+
+    def process(self, queries: List[Any]) -> List[Any]:
+        return queries
+
+    def process_stream(self, query: Dict) -> Any:
+        ## enrich query with additional data from external source
+        yield json.dumps({
+            **query,
+            **self.query_external_data(query)
+        }, indent=2)
+
+    def query_external_data(self, query: Dict) -> Dict:
+        ## fetch additional data based on query parameters
+        response = self.requests.get(f"https://api.example.com/{query.get('id')}")
+        if response.status_code == 200:
+            return response.json()
+        return {'error': 'failed to fetch'}
