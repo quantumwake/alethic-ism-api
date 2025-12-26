@@ -191,7 +191,7 @@ async def chat_completion(request: ChatCompletionRequest) -> ChatCompletionRespo
     # Build the user message with all available context
     user_content_parts = []
 
-    # Add state column information if provided
+    # Add state column information if provided (column names/types only, not data)
     if request.state_columns:
         state_info = "Available state columns for use in your template:\n\n"
         for state in request.state_columns:
@@ -202,18 +202,7 @@ async def chat_completion(request: ChatCompletionRequest) -> ChatCompletionRespo
             state_info += "\n"
         user_content_parts.append(state_info)
 
-    # Add sample data if provided
-    if request.state_samples:
-        import json
-        sample_info = "Here is sample data from the states (first 10 rows):\n\n"
-        for sample in request.state_samples:
-            state_name = sample.state_name or sample.state_id
-            sample_info += f"**{state_name}** ({sample.total_rows} total rows):\n"
-            sample_info += f"Columns: {', '.join(sample.columns)}\n"
-            sample_info += "```json\n"
-            sample_info += json.dumps(sample.sample_rows[:5], indent=2)  # Show first 5 in prompt
-            sample_info += "\n```\n\n"
-        user_content_parts.append(sample_info)
+    # Note: state_samples intentionally not sent to LLM to avoid token bloat
 
     # Add current template if provided
     if request.current_template:
@@ -742,14 +731,9 @@ async def generate_template_from_state(request: GenerateTemplateRequest) -> Chat
             detail="OpenAI client not initialized. Please set OPENAI_API_KEY environment variable."
         )
 
-    # Fetch state sample data
+    # Fetch state metadata (no data needed)
     try:
-        state = storage.load_state(
-            state_id=request.state_id,
-            load_data=True,
-            offset=0,
-            limit=request.sample_limit
-        )
+        state = storage.load_state_metadata(state_id=request.state_id)
 
         if not state:
             raise HTTPException(status_code=404, detail=f"State not found: {request.state_id}")
@@ -763,23 +747,23 @@ async def generate_template_from_state(request: GenerateTemplateRequest) -> Chat
         raise HTTPException(status_code=500, detail=f"Error loading state: {str(ex)}")
 
     state_name = state.config.name if state.config and state.config.name else request.state_id[:8]
-    sample_rows = _convert_state_data_to_rows(state)
 
-    # Build the chat completion request with sample data
-    sample_data = StateSampleData(
+    # Build column metadata (types only, no data)
+    state_column_info = StateColumnInfo(
         state_id=request.state_id,
         state_name=state_name,
-        columns=list(state.columns.keys()),
-        sample_rows=sample_rows,
-        total_rows=state.count or 0
+        columns={
+            col_name: col_def.data_type
+            for col_name, col_def in state.columns.items()
+        }
     )
 
     # Build user message
     user_message = f"""Create a {request.template_type} template for processing data from the state "{state_name}".
 
-The state has {sample_data.total_rows} total rows with these columns: {', '.join(sample_data.columns)}
+The state has {state.count or 0} total rows.
 
-Analyze the sample data and create an appropriate template that:
+Create an appropriate template that:
 1. Uses the actual column names from the data
 2. Handles the data types appropriately
 3. Produces useful structured output (JSON format preferred)
@@ -788,12 +772,12 @@ Analyze the sample data and create an appropriate template that:
     if request.user_instructions:
         user_message += f"\n\nAdditional instructions: {request.user_instructions}"
 
-    # Create the chat completion request
+    # Create the chat completion request with column metadata only
     chat_request = ChatCompletionRequest(
         template_type=request.template_type,
         user_message=user_message,
         model=request.model,
-        state_samples=[sample_data]
+        state_columns=[state_column_info]
     )
 
     return await chat_completion(chat_request)
