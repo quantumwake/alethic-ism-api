@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body
 
 from environment import storage, HUGGING_FACE_TOKEN
 from message_router import message_router
-from models.hg_models import ImportHgDatasetRequest
+from models.hg_models import ImportHgDatasetRequest, ExportHgDatasetRequest
 from models.models import BasicResponse
 from utils.http_exceptions import check_null_response
 from datasets import Dataset
@@ -75,3 +75,41 @@ async def create_hg_dataset(state_id: str, namespace: str) -> str:
     dataset.push_to_hub(f"{path}", token=HUGGING_FACE_TOKEN, private=True)
 
     return path
+
+
+@check_null_response
+@dataset_router.post("/state/{state_id}/push/hg", response_model=BasicResponse)
+async def push_hg_dataset(
+        state_id: str,
+        payload: ExportHgDatasetRequest = Body(...),
+) -> BasicResponse | None:
+    token = HUGGING_FACE_TOKEN
+
+    state = storage.load_state(state_id=state_id, load_data=True)
+
+    # Use provided dataset name or fallback to state name or truncated state_id
+    dataset_name = payload.dataset_name
+    if dataset_name is None:
+        dataset_name = state.config.name if state.config.name else state_id[:8]
+
+    # Prepare the data for Hugging Face's Dataset
+    data_for_dataset = {
+        column: values.values
+        for column, values in state.data.items()
+    }
+
+    # Create a Dataset object
+    dataset = Dataset.from_dict(data_for_dataset)
+
+    path = f"{payload.namespace}/{dataset_name}"
+
+    # Push the dataset to the Hugging Face Hub
+    dataset.push_to_hub(
+        path,
+        token=token,
+        private=payload.private,
+        commit_message=payload.commit_message,
+        revision=payload.revision,
+    )
+
+    return BasicResponse(success=True, message=path)
