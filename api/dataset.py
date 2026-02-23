@@ -1,14 +1,21 @@
 import json
+import logging
+import os
+import tempfile
 
+import pyarrow as pa
+import pyarrow.parquet as pq
 from fastapi import APIRouter, Body
+from huggingface_hub import HfApi
 
 from environment import storage, HUGGING_FACE_TOKEN
 from message_router import message_router
 from models.hg_models import ImportHgDatasetRequest, ExportHgDatasetRequest
 from models.models import BasicResponse
 from utils.http_exceptions import check_null_response
-from datasets import Dataset
 from datasets import load_dataset
+
+logger = logging.getLogger(__name__)
 
 dataset_router = APIRouter()
 
@@ -45,36 +52,41 @@ async def load_hg_dataset(
     return BasicResponse(success=True)
 
 
+def _write_state_to_parquet(state_id: str, chunk_size: int = 1000) -> tuple[str, str | None] | None:
+    """
+    Load state data in chunks and write to a temp parquet file.
+    Returns (tmp_file_path, state_name) or None if state not found.
+    """
+    state_meta = storage.load_state_metadata(state_id=state_id)
+    if not state_meta:
+        return None
 
-@dataset_router.get('/{state_id}/create/hg')
-@check_null_response
-# async def create_hg_dataset(state_id: str, namespace: str, user_id: str = Depends(token_service.verify_jwt)) -> Optional[State]:
-async def create_hg_dataset(state_id: str, namespace: str) -> str:
-    # TODO make sure state has name otherwise create a random name
-    state = storage.load_state(state_id=state_id, load_data=True)
+    columns = list(state_meta.columns.keys())
+    state_name = state_meta.config.name if state_meta.config else None
 
-    state_name = state.config.name
-    if state_name is None:
-        state_name = state_id[:8]
+    tmp_path = tempfile.mktemp(suffix='.parquet')
+    writer = None
+    offset = 0
 
-    # login("")
+    try:
+        while offset < state_meta.count:
+            chunk = storage.load_state(state_id=state_id, load_data=True, offset=offset, limit=chunk_size)
+            if not chunk or not chunk.data:
+                break
 
-    # Prepare the data for Hugging Face's Dataset
-    # Flatten the 'data' key into a format that Hugging Face expects
-    data_for_dataset = {
-        column: values.values
-        for column, values in state.data.items()
-    }
+            chunk_dict = {col: chunk.data[col].values for col in columns if col in chunk.data}
+            table = pa.table(chunk_dict)
 
-    # Create a Dataset object
-    dataset = Dataset.from_dict(data_for_dataset)
+            if writer is None:
+                writer = pq.ParquetWriter(tmp_path, table.schema)
 
-    path = f"{namespace}/{state_name}"
+            writer.write_table(table)
+            offset += chunk_size
+    finally:
+        if writer:
+            writer.close()
 
-    # Push the dataset to the Hugging Face Hub
-    dataset.push_to_hub(f"{path}", token=HUGGING_FACE_TOKEN, private=True)
-
-    return path
+    return tmp_path, state_name
 
 
 @check_null_response
@@ -85,31 +97,28 @@ async def push_hg_dataset(
 ) -> BasicResponse | None:
     token = HUGGING_FACE_TOKEN
 
-    state = storage.load_state(state_id=state_id, load_data=True)
+    result = _write_state_to_parquet(state_id=state_id, chunk_size=payload.chunk_size)
+    if result is None:
+        return None
 
-    # Use provided dataset name or fallback to state name or truncated state_id
-    dataset_name = payload.dataset_name
-    if dataset_name is None:
-        dataset_name = state.config.name if state.config.name else state_id[:8]
+    tmp_path, state_name = result
+    try:
+        dataset_name = payload.dataset_name or state_name or state_id[:8]
+        path = f"{payload.namespace}/{dataset_name}"
 
-    # Prepare the data for Hugging Face's Dataset
-    data_for_dataset = {
-        column: values.values
-        for column, values in state.data.items()
-    }
-
-    # Create a Dataset object
-    dataset = Dataset.from_dict(data_for_dataset)
-
-    path = f"{payload.namespace}/{dataset_name}"
-
-    # Push the dataset to the Hugging Face Hub
-    dataset.push_to_hub(
-        path,
-        token=token,
-        private=payload.private,
-        commit_message=payload.commit_message,
-        revision=payload.revision,
-    )
+        api = HfApi()
+        api.create_repo(repo_id=path, repo_type="dataset", exist_ok=True, private=payload.private, token=token)
+        api.upload_file(
+            path_or_fileobj=tmp_path,
+            path_in_repo="data/train-00000-of-00001.parquet",
+            repo_id=path,
+            repo_type="dataset",
+            token=token,
+            commit_message=payload.commit_message,
+            revision=payload.revision,
+        )
+    finally:
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
 
     return BasicResponse(success=True, message=path)

@@ -18,3 +18,4 @@ class ExportHgDatasetRequest(BaseModel):
     commit_message: str | None = None
     revision: str | None = None
     vaultKeyId: str | None = None
+    chunk_size: int = 1000
