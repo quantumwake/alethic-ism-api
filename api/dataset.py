@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import tempfile
+import traceback
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -52,6 +53,14 @@ async def load_hg_dataset(
     return BasicResponse(success=True)
 
 
+def _serialize_values(values: list) -> list:
+    """Ensure all values are strings or None for a consistent parquet schema."""
+    return [
+        json.dumps(v) if v is not None and not isinstance(v, str) else v
+        for v in values
+    ]
+
+
 def _write_state_to_parquet(state_id: str, chunk_size: int = 1000) -> tuple[str, str | None] | None:
     """
     Load state data in chunks and write to a temp parquet file.
@@ -59,13 +68,16 @@ def _write_state_to_parquet(state_id: str, chunk_size: int = 1000) -> tuple[str,
     """
     state_meta = storage.load_state_metadata(state_id=state_id)
     if not state_meta:
-        logger.warning("state metadata not found for state_id=%s", state_id)
+        print(f"[push_hg] state metadata not found for state_id={state_id}")
         return None
 
     columns = list(state_meta.columns.keys())
     state_name = state_meta.config.name if state_meta.config else None
-    logger.info("writing parquet for state_id=%s, count=%d, columns=%d, chunk_size=%d",
-                state_id, state_meta.count, len(columns), chunk_size)
+    print(f"[push_hg] writing parquet for state_id={state_id}, count={state_meta.count}, columns={len(columns)}, chunk_size={chunk_size}")
+
+    # Build an explicit all-string schema so every chunk matches,
+    # even when sparse columns are all-None in some chunks.
+    schema = pa.schema([(col, pa.string()) for col in columns])
 
     tmp_path = tempfile.mktemp(suffix='.parquet')
     writer = None
@@ -75,26 +87,30 @@ def _write_state_to_parquet(state_id: str, chunk_size: int = 1000) -> tuple[str,
         while offset < state_meta.count:
             chunk = storage.load_state(state_id=state_id, load_data=True, offset=offset, limit=chunk_size)
             if not chunk or not chunk.data:
-                logger.warning("empty chunk at offset=%d for state_id=%s, stopping", offset, state_id)
+                print(f"[push_hg] empty chunk at offset={offset} for state_id={state_id}, stopping early")
                 break
 
-            chunk_dict = {col: chunk.data[col].values for col in columns if col in chunk.data}
-            table = pa.table(chunk_dict)
+            chunk_dict = {
+                col: _serialize_values(chunk.data[col].values)
+                for col in columns if col in chunk.data
+            }
+            table = pa.table(chunk_dict, schema=schema)
 
             if writer is None:
-                writer = pq.ParquetWriter(tmp_path, table.schema)
+                writer = pq.ParquetWriter(tmp_path, schema)
 
             writer.write_table(table)
             offset += chunk_size
-            logger.debug("wrote chunk offset=%d for state_id=%s", offset, state_id)
+            print(f"[push_hg] wrote chunk offset={offset}/{state_meta.count} for state_id={state_id}")
     except Exception:
-        logger.exception("failed writing parquet at offset=%d for state_id=%s", offset, state_id)
+        print(f"[push_hg] EXCEPTION writing parquet at offset={offset} for state_id={state_id}")
+        traceback.print_exc()
         raise
     finally:
         if writer:
             writer.close()
 
-    logger.info("parquet written to %s for state_id=%s (%d rows)", tmp_path, state_id, offset)
+    print(f"[push_hg] parquet complete: {tmp_path} for state_id={state_id} ({offset} rows)")
     return tmp_path, state_name
 
 
@@ -118,7 +134,7 @@ async def push_hg_dataset(
 
             api = HfApi()
             api.create_repo(repo_id=path, repo_type="dataset", exist_ok=True, private=payload.private, token=token)
-            logger.info("uploading parquet to %s", path)
+            print(f"[push_hg] uploading parquet to {path}")
             api.upload_file(
                 path_or_fileobj=tmp_path,
                 path_in_repo="data/train-00000-of-00001.parquet",
@@ -128,12 +144,13 @@ async def push_hg_dataset(
                 commit_message=payload.commit_message,
                 revision=payload.revision,
             )
-            logger.info("upload complete for %s", path)
+            print(f"[push_hg] upload complete for {path}")
         finally:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
 
         return BasicResponse(success=True, message=path)
     except Exception:
-        logger.exception("failed to push hg dataset for state_id=%s", state_id)
+        print(f"[push_hg] EXCEPTION pushing hg dataset for state_id={state_id}")
+        traceback.print_exc()
         raise
