@@ -7,7 +7,8 @@ import traceback
 import pyarrow as pa
 import pyarrow.parquet as pq
 from fastapi import APIRouter, Body
-from huggingface_hub import HfApi, CommitOperationAdd, CommitOperationDelete
+from huggingface_hub import HfApi
+from huggingface_hub.errors import BadRequestError
 
 from environment import storage, HUGGING_FACE_TOKEN
 from message_router import message_router
@@ -136,19 +137,26 @@ async def push_hg_dataset(
             api.create_repo(repo_id=path, repo_type="dataset", exist_ok=True, private=payload.private, token=token)
 
             parquet_path_in_repo = "data/train-00000-of-00001.parquet"
-            operations = [
-                CommitOperationDelete(path_in_repo=parquet_path_in_repo, is_folder=False),
-                CommitOperationAdd(path_in_repo=parquet_path_in_repo, path_or_fileobj=tmp_path),
-            ]
-            print(f"[push_hg] uploading parquet to {path}")
-            api.create_commit(
+            upload_kwargs = dict(
+                path_or_fileobj=tmp_path,
+                path_in_repo=parquet_path_in_repo,
                 repo_id=path,
                 repo_type="dataset",
-                operations=operations,
-                commit_message=payload.commit_message or "Update dataset",
-                revision=payload.revision,
                 token=token,
+                commit_message=payload.commit_message,
+                revision=payload.revision,
             )
+
+            print(f"[push_hg] uploading parquet to {path}")
+            try:
+                api.upload_file(**upload_kwargs)
+            except BadRequestError:
+                # Repo has a stale LFS pointer from a previous failed push.
+                # Delete and recreate the repo to clear the corrupt state.
+                print(f"[push_hg] stale LFS state detected, recreating repo {path}")
+                api.delete_repo(repo_id=path, repo_type="dataset", token=token)
+                api.create_repo(repo_id=path, repo_type="dataset", exist_ok=True, private=payload.private, token=token)
+                api.upload_file(**upload_kwargs)
             print(f"[push_hg] upload complete for {path}")
         finally:
             if os.path.exists(tmp_path):
