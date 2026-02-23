@@ -7,7 +7,7 @@ import traceback
 import pyarrow as pa
 import pyarrow.parquet as pq
 from fastapi import APIRouter, Body
-from huggingface_hub import HfApi
+from huggingface_hub import HfApi, CommitOperationAdd, CommitOperationDelete
 
 from environment import storage, HUGGING_FACE_TOKEN
 from message_router import message_router
@@ -134,15 +134,20 @@ async def push_hg_dataset(
 
             api = HfApi()
             api.create_repo(repo_id=path, repo_type="dataset", exist_ok=True, private=payload.private, token=token)
+
+            parquet_path_in_repo = "data/train-00000-of-00001.parquet"
+            operations = [
+                CommitOperationDelete(path_in_repo=parquet_path_in_repo, is_folder=False),
+                CommitOperationAdd(path_in_repo=parquet_path_in_repo, path_or_fileobj=tmp_path),
+            ]
             print(f"[push_hg] uploading parquet to {path}")
-            api.upload_file(
-                path_or_fileobj=tmp_path,
-                path_in_repo="data/train-00000-of-00001.parquet",
+            api.create_commit(
                 repo_id=path,
                 repo_type="dataset",
-                token=token,
-                commit_message=payload.commit_message,
+                operations=operations,
+                commit_message=payload.commit_message or "Update dataset",
                 revision=payload.revision,
+                token=token,
             )
             print(f"[push_hg] upload complete for {path}")
         finally:
