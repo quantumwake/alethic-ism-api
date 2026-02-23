@@ -59,10 +59,13 @@ def _write_state_to_parquet(state_id: str, chunk_size: int = 1000) -> tuple[str,
     """
     state_meta = storage.load_state_metadata(state_id=state_id)
     if not state_meta:
+        logger.warning("state metadata not found for state_id=%s", state_id)
         return None
 
     columns = list(state_meta.columns.keys())
     state_name = state_meta.config.name if state_meta.config else None
+    logger.info("writing parquet for state_id=%s, count=%d, columns=%d, chunk_size=%d",
+                state_id, state_meta.count, len(columns), chunk_size)
 
     tmp_path = tempfile.mktemp(suffix='.parquet')
     writer = None
@@ -72,6 +75,7 @@ def _write_state_to_parquet(state_id: str, chunk_size: int = 1000) -> tuple[str,
         while offset < state_meta.count:
             chunk = storage.load_state(state_id=state_id, load_data=True, offset=offset, limit=chunk_size)
             if not chunk or not chunk.data:
+                logger.warning("empty chunk at offset=%d for state_id=%s, stopping", offset, state_id)
                 break
 
             chunk_dict = {col: chunk.data[col].values for col in columns if col in chunk.data}
@@ -82,10 +86,15 @@ def _write_state_to_parquet(state_id: str, chunk_size: int = 1000) -> tuple[str,
 
             writer.write_table(table)
             offset += chunk_size
+            logger.debug("wrote chunk offset=%d for state_id=%s", offset, state_id)
+    except Exception:
+        logger.exception("failed writing parquet at offset=%d for state_id=%s", offset, state_id)
+        raise
     finally:
         if writer:
             writer.close()
 
+    logger.info("parquet written to %s for state_id=%s (%d rows)", tmp_path, state_id, offset)
     return tmp_path, state_name
 
 
@@ -97,28 +106,34 @@ async def push_hg_dataset(
 ) -> BasicResponse | None:
     token = HUGGING_FACE_TOKEN
 
-    result = _write_state_to_parquet(state_id=state_id, chunk_size=payload.chunk_size)
-    if result is None:
-        return None
-
-    tmp_path, state_name = result
     try:
-        dataset_name = payload.dataset_name or state_name or state_id[:8]
-        path = f"{payload.namespace}/{dataset_name}"
+        result = _write_state_to_parquet(state_id=state_id, chunk_size=payload.chunk_size)
+        if result is None:
+            return None
 
-        api = HfApi()
-        api.create_repo(repo_id=path, repo_type="dataset", exist_ok=True, private=payload.private, token=token)
-        api.upload_file(
-            path_or_fileobj=tmp_path,
-            path_in_repo="data/train-00000-of-00001.parquet",
-            repo_id=path,
-            repo_type="dataset",
-            token=token,
-            commit_message=payload.commit_message,
-            revision=payload.revision,
-        )
-    finally:
-        if os.path.exists(tmp_path):
-            os.unlink(tmp_path)
+        tmp_path, state_name = result
+        try:
+            dataset_name = payload.dataset_name or state_name or state_id[:8]
+            path = f"{payload.namespace}/{dataset_name}"
 
-    return BasicResponse(success=True, message=path)
+            api = HfApi()
+            api.create_repo(repo_id=path, repo_type="dataset", exist_ok=True, private=payload.private, token=token)
+            logger.info("uploading parquet to %s", path)
+            api.upload_file(
+                path_or_fileobj=tmp_path,
+                path_in_repo="data/train-00000-of-00001.parquet",
+                repo_id=path,
+                repo_type="dataset",
+                token=token,
+                commit_message=payload.commit_message,
+                revision=payload.revision,
+            )
+            logger.info("upload complete for %s", path)
+        finally:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+
+        return BasicResponse(success=True, message=path)
+    except Exception:
+        logger.exception("failed to push hg dataset for state_id=%s", state_id)
+        raise

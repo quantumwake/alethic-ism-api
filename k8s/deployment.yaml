@@ -26,6 +26,8 @@ spec:
             items:
               - key: .firebase-credentials.json
                 path: .firebase-credentials.json
+        - name: tmp-volume
+          emptyDir: {}
       containers:
       - name: alethic-ism-api
         image: <IMAGE>
@@ -39,6 +41,8 @@ spec:
             mountPath: /app/repo/.firebase-credentials.json
             subPath: .firebase-credentials.json
             readOnly: true
+          - name: tmp-volume
+            mountPath: /tmp
         env:
           - name: HUGGING_FACE_TOKEN
             valueFrom:
