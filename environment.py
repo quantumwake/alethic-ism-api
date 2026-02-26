@@ -15,6 +15,8 @@ FIREBASE_CREDENTIALS_JSON_FILE = os.environ.get("FIREBASE_CREDENTIALS_JSON_FILE"
 LOG_LEVEL = os.environ.get("LOG_LEVEL", logging.INFO)
 ENABLED_LOCAL_AUTH = str2bool(os.environ.get("ENABLED_LOCAL_AUTH", "False"))
 ENABLED_FIREBASE_AUTH = str2bool(os.environ.get("ENABLED_FIREBASE_AUTH", "False"))
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", None)
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", None)
 
 if not DATABASE_URL:
     raise ValueError(f'invalid database url, no DATABASE_URL env was specified')

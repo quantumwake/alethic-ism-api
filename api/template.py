@@ -142,6 +142,12 @@ async def merge_instruction_template_text(template_id: str,
     return merge_instruction_template(instruction)
 
 
+@template_router.delete('/{template_id}')
+async def delete_template(template_id: str):
+    storage.template_storage.delete_template(template_id)
+    return {"status": "ok", "template_id": template_id}
+
+
 @template_router.put('/{template_id}/rename/{new_name}')
 async def rename_template(template_id: str, new_name: str) -> Optional[InstructionTemplate]:
     template = storage.fetch_template(template_id=template_id)
