@@ -80,6 +80,12 @@ spec:
                 name: alethic-ism-api-secret
                 key: DATABASE_URL
 
+          - name: ANTHROPIC_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: alethic-ism-api-secret
+                key: ANTHROPIC_API_KEY
+
           - name: OPENAI_API_KEY
             valueFrom:
               secretKeyRef:
