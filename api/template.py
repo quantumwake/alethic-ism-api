@@ -1,23 +1,12 @@
-import os
 from typing import Optional, List, Dict
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from ismcore.model.base_model import InstructionTemplate
-from openai import OpenAI
 
 from environment import storage
-from api.template_examples import TemplateExamples, AVAILABLE_MODELS
+from api.template_examples import TemplateExamples
 
 template_router = APIRouter()
-
-# Initialize OpenAI client (API key from environment)
-openai_client = None
-try:
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if api_key:
-        openai_client = OpenAI(api_key=api_key)
-except Exception as e:
-    print(f"Warning: OpenAI client not initialized: {e}")
 
 
 class StateColumnInfo(BaseModel):
@@ -34,23 +23,6 @@ class StateSampleData(BaseModel):
     columns: List[str]
     sample_rows: List[Dict]  # Up to 10 sample rows
     total_rows: int
-
-
-class ChatCompletionRequest(BaseModel):
-    """Request model for chat completion"""
-    template_type: str
-    user_message: str
-    model: str = "gpt-4o-mini"
-    current_template: Optional[str] = None
-    state_columns: Optional[List[StateColumnInfo]] = None  # Available state columns for context
-    state_samples: Optional[List[StateSampleData]] = None  # Sample data for context
-
-
-class ChatCompletionResponse(BaseModel):
-    """Response model for chat completion"""
-    content: str
-    model: str
-    examples: List[Dict]
 
 
 class AutocompletionRequest(BaseModel):
@@ -87,14 +59,6 @@ class AutocompletionResponse(BaseModel):
     keywords: List[str]
     # Raw state info for AI context
     states: Optional[List[Dict]] = None
-
-
-@template_router.get('/models')
-async def get_available_models() -> List[str]:
-    """
-    Get list of available OpenAI models for chat completion.
-    """
-    return AVAILABLE_MODELS
 
 
 @template_router.get('/examples/{template_type}')
@@ -154,97 +118,6 @@ async def rename_template(template_id: str, new_name: str) -> Optional[Instructi
     template.template_path = new_name
     storage.insert_template(template=template)
     return template
-
-
-@template_router.post('/chat/completion')
-async def chat_completion(request: ChatCompletionRequest) -> ChatCompletionResponse:
-    """
-    Chat completion endpoint for template assistance.
-    Provides AI-powered help for creating templates using few-shot examples.
-    """
-    if not openai_client:
-        raise HTTPException(
-            status_code=503,
-            detail="OpenAI client not initialized. Please set OPENAI_API_KEY environment variable."
-        )
-
-    if request.model not in AVAILABLE_MODELS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid model. Available models: {', '.join(AVAILABLE_MODELS)}"
-        )
-
-    # Get system prompt and examples for the template type
-    system_prompt = TemplateExamples.get_system_prompt_for_type(request.template_type)
-    examples = TemplateExamples.get_examples_for_type(request.template_type)
-
-    # Build messages with few-shot examples
-    messages = [
-        {"role": "system", "content": system_prompt}
-    ]
-
-    # Add few-shot examples
-    for example in examples:
-        messages.append({
-            "role": "user",
-            "content": f"Create a template for: {example['use_case']}"
-        })
-        messages.append({
-            "role": "assistant",
-            "content": f"Here's a {request.template_type} template for {example['use_case']}:\n\n```\n{example['template']}\n```"
-        })
-
-    # Build the user message with all available context
-    user_content_parts = []
-
-    # Add state column information if provided (column names/types only, not data)
-    if request.state_columns:
-        state_info = "Available state columns for use in your template:\n\n"
-        for state in request.state_columns:
-            state_name = state.state_name or state.state_id
-            state_info += f"**{state_name}** (state_id: {state.state_id}):\n"
-            for col_name, col_type in state.columns.items():
-                state_info += f"  - `{col_name}`: {col_type}\n"
-            state_info += "\n"
-        user_content_parts.append(state_info)
-
-    # Note: state_samples intentionally not sent to LLM to avoid token bloat
-
-    # Add current template if provided
-    if request.current_template:
-        user_content_parts.append(f"I'm currently working on this template:\n\n```\n{request.current_template}\n```\n")
-
-    # Add the user's message
-    user_content_parts.append(request.user_message)
-
-    # Combine all parts
-    messages.append({
-        "role": "user",
-        "content": "\n".join(user_content_parts)
-    })
-
-    try:
-        # Call OpenAI API
-        response = openai_client.chat.completions.create(
-            model=request.model,
-            messages=messages,
-            temperature=0.7,
-            max_tokens=2000
-        )
-
-        content = response.choices[0].message.content
-
-        return ChatCompletionResponse(
-            content=content,
-            model=request.model,
-            examples=examples
-        )
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"OpenAI API error: {str(e)}"
-        )
 
 
 @template_router.post('/autocompletion/{template_type}')
@@ -716,74 +589,21 @@ async def get_project_state_samples(
         raise HTTPException(status_code=500, detail=f"Error fetching project states: {str(ex)}")
 
 
-class GenerateTemplateRequest(BaseModel):
-    """Request for generating a template from state data"""
-    template_type: str
-    state_id: str
-    user_instructions: Optional[str] = None
-    model: str = "gpt-4o-mini"
-    sample_limit: int = 10
-
-
-@template_router.post('/generate/from-state')
-async def generate_template_from_state(request: GenerateTemplateRequest) -> ChatCompletionResponse:
-    """
-    Generate a template by analyzing state columns and sample data.
-    The AI will create an appropriate template based on the data structure.
-    """
-    if not openai_client:
-        raise HTTPException(
-            status_code=503,
-            detail="OpenAI client not initialized. Please set OPENAI_API_KEY environment variable."
-        )
-
-    # Fetch state metadata (no data needed)
-    try:
-        state = storage.load_state_metadata(state_id=request.state_id)
-
-        if not state:
-            raise HTTPException(status_code=404, detail=f"State not found: {request.state_id}")
-
-        if not state.columns:
-            raise HTTPException(status_code=404, detail=f"State has no columns: {request.state_id}")
-
-    except HTTPException:
-        raise
-    except Exception as ex:
-        raise HTTPException(status_code=500, detail=f"Error loading state: {str(ex)}")
-
-    state_name = state.config.name if state.config and state.config.name else request.state_id[:8]
-
-    # Build column metadata (types only, no data)
-    state_column_info = StateColumnInfo(
-        state_id=request.state_id,
-        state_name=state_name,
-        columns={
-            col_name: col_def.data_type
-            for col_name, col_def in state.columns.items()
-        }
-    )
-
-    # Build user message
-    user_message = f"""Create a {request.template_type} template for processing data from the state "{state_name}".
-
-The state has {state.count or 0} total rows.
-
-Create an appropriate template that:
-1. Uses the actual column names from the data
-2. Handles the data types appropriately
-3. Produces useful structured output (JSON format preferred)
-"""
-
-    if request.user_instructions:
-        user_message += f"\n\nAdditional instructions: {request.user_instructions}"
-
-    # Create the chat completion request with column metadata only
-    chat_request = ChatCompletionRequest(
-        template_type=request.template_type,
-        user_message=user_message,
-        model=request.model,
-        state_columns=[state_column_info]
-    )
-
-    return await chat_completion(chat_request)
+# NOTE: intentionally disabled for now.
+# Kept commented to preserve prior behavior/context for a future re-introduction.
+#
+# class GenerateTemplateRequest(BaseModel):
+#     """Request for generating a template from state data"""
+#     template_type: str
+#     state_id: str
+#     user_instructions: Optional[str] = None
+#     model: str = "gpt-4o-mini"
+#     sample_limit: int = 10
+#
+#
+# @template_router.post('/generate/from-state')
+# async def generate_template_from_state(request: GenerateTemplateRequest):
+#     raise HTTPException(
+#         status_code=410,
+#         detail="Template AI generation is disabled. Use /assistant endpoints instead."
+#     )

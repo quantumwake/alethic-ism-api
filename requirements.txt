@@ -17,5 +17,3 @@ uvicorn
 firebase-admin
 starlette
 openpyxl
-openai
-anthropic

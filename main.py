@@ -4,7 +4,6 @@ import time
 ## front loaded
 from environment import API_ROOT_PATH
 
-from api.assistant import assistant_router
 from api.dataset import dataset_router
 from api.filter import filter_router
 from message_router import message_router
@@ -86,9 +85,6 @@ app.include_router(monitor_router, prefix="/monitor", tags=["monitors"])
 app.include_router(state_channel_router, prefix="/streams", tags=["streams"])
 app.include_router(dataset_router, prefix="/dataset", tags=["datasets"])
 app.include_router(validate_router, prefix="/validate", tags=["validate"])
-app.include_router(assistant_router, prefix="/assistant", tags=["assistant"])
-
-
 @app.on_event("startup")
 async def startup_event():
     pass
