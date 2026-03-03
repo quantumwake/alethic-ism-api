@@ -1,3 +1,4 @@
+import asyncio
 import io
 import json
 import openpyxl
@@ -73,6 +74,42 @@ def _file_iterator(file_path: str, chunk_size: int = 8192):
         if os.path.exists(file_path):
             os.unlink(file_path)
 
+def _build_excel_file(state_id: str, chunk_size: int) -> str:
+    """Build Excel export file. Sync — meant to run in a thread pool."""
+    state_meta = storage.load_state_metadata(state_id=state_id)
+    if not state_meta:
+        raise ValueError(f"State {state_id} not found")
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"State {state_id}"[:31]
+
+    columns = list(state_meta.columns.keys())
+    column_mapping = {col_name: idx + 1 for idx, col_name in enumerate(columns)}
+    for col_idx, col_name in enumerate(columns, start=1):
+        ws.cell(row=1, column=col_idx, value=col_name)
+
+    offset = 0
+    total_count = state_meta.count
+
+    while offset < total_count:
+        rows = storage.fetch_state_data_chunk_for_export(
+            state_id=state_id,
+            offset=offset,
+            limit=chunk_size
+        )
+        if not rows:
+            break
+        _process_chunk_rows(rows, ws, column_mapping)
+        offset += chunk_size
+
+    with tempfile.NamedTemporaryFile(mode='wb', suffix='.xlsx', delete=False) as tmp_file:
+        tmp_path = tmp_file.name
+        wb.save(tmp_file.name)
+
+    return tmp_path
+
+
 @state_router.get(
     "/{state_id}/export",
     summary="Export state as Excel",
@@ -83,43 +120,7 @@ async def export_state_excel(
     chunk_size: int = Query(1000, description="Number of rows to load per chunk"),
     user_id: str = Depends(token_service.verify_jwt)
 ) -> StreamingResponse:
-    # Load state metadata
-    state_meta = storage.load_state_metadata(state_id=state_id)
-    if not state_meta:
-        raise ValueError(f"State {state_id} not found")
-
-    # Initialize Excel workbook
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = f"State {state_id}"[:31]  # Excel sheet names max 31 chars
-
-    # Write header row
-    columns = list(state_meta.columns.keys())
-    column_mapping = {col_name: idx + 1 for idx, col_name in enumerate(columns)}
-    for col_idx, col_name in enumerate(columns, start=1):
-        ws.cell(row=1, column=col_idx, value=col_name)
-
-    # Fetch and write data in chunks
-    offset = 0
-    total_count = state_meta.count
-
-    while offset < total_count:
-        rows = storage.fetch_state_data_chunk_for_export(
-            state_id=state_id,
-            offset=offset,
-            limit=chunk_size
-        )
-
-        if not rows:
-            break
-
-        _process_chunk_rows(rows, ws, column_mapping)
-        offset += chunk_size
-
-    # Save to temporary file and stream
-    with tempfile.NamedTemporaryFile(mode='wb', suffix='.xlsx', delete=False) as tmp_file:
-        tmp_path = tmp_file.name
-        wb.save(tmp_file.name)
+    tmp_path = await asyncio.to_thread(_build_excel_file, state_id, chunk_size)
 
     return StreamingResponse(
         _file_iterator(tmp_path),

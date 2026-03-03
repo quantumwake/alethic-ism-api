@@ -35,4 +35,4 @@ ENTRYPOINT ["entrypoint.sh"]
 
 # Run Uvicorn when the container launches, making sure to activate the virtual environment
 #CMD ["/bin/sh", "-c", "source .venv/bin/activate && uvicorn main:app --host 0.0.0.0 --port 80 --reload --proxy-headers --log-level trace"]
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80", "--reload", "--proxy-headers", "--log-level", "trace"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80", "--workers", "4", "--proxy-headers", "--log-level", "trace"]

@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -31,9 +32,12 @@ async def load_hg_dataset(
     # if request.vaultKeyId is None:
     token = HUGGING_FACE_TOKEN
 
-    # Load the dataset from the Hugging Face Hub from URL
-    dataset = load_dataset(payload.path, subset=payload.subset, split=payload.split, revision=payload.revision, token=token)
-    dataset = dataset.to_list()
+    # Load the dataset from the Hugging Face Hub — blocking I/O, offload to thread pool
+    def _load():
+        ds = load_dataset(payload.path, subset=payload.subset, split=payload.split, revision=payload.revision, token=token)
+        return ds.to_list()
+
+    dataset = await asyncio.to_thread(_load)
 
     offset = 0
     block_index = 0
@@ -115,6 +119,47 @@ def _write_state_to_parquet(state_id: str, chunk_size: int = 1000) -> tuple[str,
     return tmp_path, state_name
 
 
+def _push_to_huggingface(state_id: str, payload: ExportHgDatasetRequest, token: str) -> str | None:
+    """Write parquet + upload to HF Hub. Sync — meant to run in a thread pool."""
+    result = _write_state_to_parquet(state_id=state_id, chunk_size=payload.chunk_size)
+    if result is None:
+        return None
+
+    tmp_path, state_name = result
+    try:
+        dataset_name = payload.dataset_name or state_name or state_id[:8]
+        path = f"{payload.namespace}/{dataset_name}"
+
+        api = HfApi()
+        api.create_repo(repo_id=path, repo_type="dataset", exist_ok=True, private=payload.private, token=token)
+
+        parquet_path_in_repo = "data/train-00000-of-00001.parquet"
+        upload_kwargs = dict(
+            path_or_fileobj=tmp_path,
+            path_in_repo=parquet_path_in_repo,
+            repo_id=path,
+            repo_type="dataset",
+            token=token,
+            commit_message=payload.commit_message,
+            revision=payload.revision,
+        )
+
+        print(f"[push_hg] uploading parquet to {path}")
+        try:
+            api.upload_file(**upload_kwargs)
+        except BadRequestError:
+            print(f"[push_hg] stale LFS state detected, recreating repo {path}")
+            api.delete_repo(repo_id=path, repo_type="dataset", token=token)
+            api.create_repo(repo_id=path, repo_type="dataset", exist_ok=True, private=payload.private, token=token)
+            api.upload_file(**upload_kwargs)
+        print(f"[push_hg] upload complete for {path}")
+    finally:
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+
+    return path
+
+
 @check_null_response
 @dataset_router.post("/state/{state_id}/push/hg", response_model=BasicResponse)
 async def push_hg_dataset(
@@ -124,44 +169,9 @@ async def push_hg_dataset(
     token = HUGGING_FACE_TOKEN
 
     try:
-        result = _write_state_to_parquet(state_id=state_id, chunk_size=payload.chunk_size)
-        if result is None:
+        path = await asyncio.to_thread(_push_to_huggingface, state_id, payload, token)
+        if path is None:
             return None
-
-        tmp_path, state_name = result
-        try:
-            dataset_name = payload.dataset_name or state_name or state_id[:8]
-            path = f"{payload.namespace}/{dataset_name}"
-
-            api = HfApi()
-            api.create_repo(repo_id=path, repo_type="dataset", exist_ok=True, private=payload.private, token=token)
-
-            parquet_path_in_repo = "data/train-00000-of-00001.parquet"
-            upload_kwargs = dict(
-                path_or_fileobj=tmp_path,
-                path_in_repo=parquet_path_in_repo,
-                repo_id=path,
-                repo_type="dataset",
-                token=token,
-                commit_message=payload.commit_message,
-                revision=payload.revision,
-            )
-
-            print(f"[push_hg] uploading parquet to {path}")
-            try:
-                api.upload_file(**upload_kwargs)
-            except BadRequestError:
-                # Repo has a stale LFS pointer from a previous failed push.
-                # Delete and recreate the repo to clear the corrupt state.
-                print(f"[push_hg] stale LFS state detected, recreating repo {path}")
-                api.delete_repo(repo_id=path, repo_type="dataset", token=token)
-                api.create_repo(repo_id=path, repo_type="dataset", exist_ok=True, private=payload.private, token=token)
-                api.upload_file(**upload_kwargs)
-            print(f"[push_hg] upload complete for {path}")
-        finally:
-            if os.path.exists(tmp_path):
-                os.unlink(tmp_path)
-
         return BasicResponse(success=True, message=path)
     except Exception:
         print(f"[push_hg] EXCEPTION pushing hg dataset for state_id={state_id}")

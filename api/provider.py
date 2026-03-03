@@ -21,3 +21,19 @@ async def fetch_provider_processors(user_id: str = None, project_id: str = None,
         version=version,
         class_name=class_name
     )
+
+
+@provider_router.get("/search")
+async def search_providers(
+    name: str = None,
+    version: str = None,
+    class_name: str = None,
+    limit: int = 20,
+):
+    """Search providers with case-insensitive partial matching (ILIKE) on name, version, and class_name."""
+    return storage.search_processor_providers(
+        name=name,
+        version=version,
+        class_name=class_name,
+        limit=limit,
+    )
