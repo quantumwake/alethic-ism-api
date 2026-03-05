@@ -3,7 +3,7 @@ from typing import Optional
 
 from fastapi import APIRouter
 from ismcore.messaging.base_message_route_model import RouteMessageStatus
-from ismcore.model.base_model import ProcessorState, EdgeFunctionConfig
+from ismcore.model.base_model import ProcessorState, ProcessorStateDirection, EdgeFunctionConfig
 from pydantic import ValidationError
 
 from environment import storage
@@ -60,3 +60,5 @@ async def get_edge_function_config(route_id: str) -> Optional[EdgeFunctionConfig
 @check_null_response
 async def update_edge_function_config(route_id: str, config: EdgeFunctionConfig) -> Optional[EdgeFunctionConfig]:
     return storage.update_edge_function_config(route_id=route_id, config=config)
+
+

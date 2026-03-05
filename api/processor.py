@@ -1,12 +1,16 @@
-from typing import Optional, List
+import json
+from typing import Optional, List, Dict, Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from ismcore.messaging.base_message_route_model import RouteMessageStatus
 from ismcore.model.base_model import Processor, ProcessorStateDirection, ProcessorState, ProcessorStatusCode
+from pydantic import BaseModel
 
 from api import token_service
 from environment import storage
 from utils.http_exceptions import check_null_response
 from models.models import ProcessorStatusUpdated
+from message_router import message_router
 
 processor_router = APIRouter()
 
@@ -75,6 +79,59 @@ async def change_processor_status(processor_id: str, status: str = "TERMINATE") 
     # if the update was successful then set success = true
     if updated > 0: result.success = True
     return result
+
+class TriggerOverrides(BaseModel):
+    """Optional overrides merged on top of processor.properties when triggering."""
+    action: Optional[str] = None
+    prefix: Optional[str] = None
+    pattern: Optional[str] = None
+    overrides: Optional[Dict[str, Any]] = None
+
+
+SELECTOR_STATE_ROUTER = "processor/state/router"
+state_router_route = message_router.find_route(SELECTOR_STATE_ROUTER)
+
+
+@processor_router.post("/{processor_id}/trigger")
+async def trigger_processor(
+    processor_id: str,
+    request: TriggerOverrides = TriggerOverrides(),
+    user_id: str = Depends(token_service.verify_jwt),
+) -> RouteMessageStatus:
+    """Trigger a processor directly (e.g. connector fetching from external source).
+
+    Uses query_processor_entry — sends directly to the processor by ID,
+    no input route/state required.  Processor properties are merged with
+    optional overrides from the request body (body wins).
+    """
+    processor = storage.fetch_processor(processor_id=processor_id)
+    if not processor:
+        raise HTTPException(status_code=404, detail=f'Processor {processor_id} not found')
+
+    # Merge: processor.properties (base) + explicit fields + catch-all overrides
+    props = dict(processor.properties or {})
+    if request.action is not None:
+        props["action"] = request.action
+    if request.prefix is not None:
+        props["prefix"] = request.prefix
+    if request.pattern is not None:
+        props["pattern"] = request.pattern
+    if request.overrides:
+        props.update(request.overrides)
+
+    message = {
+        "type": "query_processor_entry",
+        "processor_id": processor_id,
+        "query_state": [{
+            "properties": props,
+            "owner_id": user_id
+        }]
+    }
+
+    message_string = json.dumps(message)
+    status = await state_router_route.publish(message_string)
+    return status
+
 
 #
 # @app.put("/processor/terminate", tags=["Processor"])
