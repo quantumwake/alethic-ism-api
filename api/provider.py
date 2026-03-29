@@ -10,9 +10,8 @@ provider_router = APIRouter()
 
 
 @provider_router.get("/list")
-@check_null_response
 async def fetch_provider_processors(user_id: str = None, project_id: str = None, name: str = None, version: str = None, class_name: str = None) \
-        -> Optional[List[ProcessorProvider]]:
+        -> List[ProcessorProvider]:
 
     return storage.fetch_processor_providers(
         user_id=user_id,
@@ -20,7 +19,7 @@ async def fetch_provider_processors(user_id: str = None, project_id: str = None,
         name=name,
         version=version,
         class_name=class_name
-    )
+    ) or []
 
 
 @provider_router.get("/search")

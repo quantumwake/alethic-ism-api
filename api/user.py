@@ -153,9 +153,8 @@ async def fetch_user(token_uid: str) -> str:
 
 
 @user_router.get("/{user_id}/projects")
-@check_null_response
-async def fetch_user_projects(user_id: str = Depends(token_service.verify_jwt)) -> Optional[List[UserProject]]:
-    return storage.fetch_user_projects(user_id=user_id)
+async def fetch_user_projects(user_id: str = Depends(token_service.verify_jwt)) -> List[UserProject]:
+    return storage.fetch_user_projects(user_id=user_id) or []
 
 
 @user_router.get("")
@@ -165,7 +164,6 @@ async def fetch_user(user_id: str = Depends(token_service.verify_jwt)) -> Option
 
 
 @user_router.get("/{user_id}/provider/processors")
-@check_null_response
 async def fetch_processor_providers(user_id: str = Depends(token_service.verify_jwt)) \
-        -> Optional[List[ProcessorProvider]]:
-    return storage.fetch_processor_providers(user_id=user_id)
+        -> List[ProcessorProvider]:
+    return storage.fetch_processor_providers(user_id=user_id) or []

@@ -25,39 +25,34 @@ async def create_project(user_project: UserProject) \
 
 
 @project_router.get("/{project_id}/processors")
-@check_null_response
 async def fetch_processors(project_id: str) \
-        -> Optional[List[Processor]]:
-    return storage.fetch_processors(project_id=project_id)
+        -> List[Processor]:
+    return storage.fetch_processors(project_id=project_id) or []
 
 
 @project_router.get("/{project_id}/workflow/nodes")
-@check_null_response
 async def fetch_project_workflow_nodes(project_id: str, user_id: str = Depends(token_service.verify_jwt)) \
-        -> Optional[List[WorkflowNode]]:
-    return storage.fetch_workflow_nodes(project_id=project_id)
+        -> List[WorkflowNode]:
+    return storage.fetch_workflow_nodes(project_id=project_id) or []
 
 
 @project_router.get("/{project_id}/workflow/edges")
-@check_null_response
 async def fetch_project_workflow_edges(project_id: str, user_id: str = Depends(token_service.verify_jwt)) \
-        -> Optional[List[WorkflowEdge]]:
-    return storage.fetch_workflow_edges(project_id=project_id)
+        -> List[WorkflowEdge]:
+    return storage.fetch_workflow_edges(project_id=project_id) or []
 
 
 @project_router.get("/{project_id}/templates")
-@check_null_response
-async def fetch_project_instruction_templates(project_id: str) -> Optional[List[InstructionTemplate]]:
-    return storage.fetch_templates(project_id=project_id)
+async def fetch_project_instruction_templates(project_id: str) -> List[InstructionTemplate]:
+    return storage.fetch_templates(project_id=project_id) or []
 
 
 @project_router.get("/{project_id}/states")
-@check_null_response
 async def fetch_project_states(project_id: str) \
-        -> Optional[List[State]]:
+        -> List[State]:
     states = storage.fetch_states(project_id=project_id)
     if not states:
-        return None
+        return []
 
     for index, state in enumerate(states):
         states[index] = storage.load_state(state_id=state.id, load_data=False)
@@ -67,13 +62,12 @@ async def fetch_project_states(project_id: str) \
 
 
 @project_router.get("/{project_id}/processor/states")
-@check_null_response
 async def fetch_project_processor_states(project_id: str) \
-        -> Optional[List[ProcessorState]]:
+        -> List[ProcessorState]:
     # TODO needs caching likely, or we need to stream this to each user connected,
     #  instead of a POLL mechanism (this was the easiest fastest for now, ...)
     processor_states = storage.fetch_processor_state_routes_by_project_id(project_id=project_id)
-    return processor_states
+    return processor_states or []
 
 @project_router.get("/{project_id}")
 @check_null_response
@@ -97,10 +91,9 @@ async def delete_project(project_id: str, user_id: str = Depends(token_service.v
     return storage.delete_user_project(project_id=project_id)
 
 @project_router.get("/{project_id}/provider/processors")
-@check_null_response
 async def fetch_provider_processors(project_id: str) \
-        -> Optional[List[ProcessorProvider]]:
-    return storage.fetch_processor_providers(project_id=project_id)
+        -> List[ProcessorProvider]:
+    return storage.fetch_processor_providers(project_id=project_id) or []
 
 
 @project_router.post("/{project_id}/share/link")

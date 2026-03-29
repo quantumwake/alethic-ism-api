@@ -23,6 +23,5 @@ async def delete_session(session_id: str) -> int:
 
 
 @session_router.get('/{session_id}/messages')
-@check_null_response
 async def fetch_session_messages(session_id: str, user_id=Depends(token_service.verify_jwt)) -> List[SessionMessage]:
-    return storage.fetch_session_messages(user_id=user_id, session_id=session_id)
+    return storage.fetch_session_messages(user_id=user_id, session_id=session_id) or []

@@ -44,21 +44,17 @@ async def merge_processor(processor: Processor) \
 
 
 @processor_router.get("/{processor_id}/states")
-@check_null_response
 async def fetch_processor_states(
         processor_id: str,
         direction: ProcessorStateDirection = ProcessorStateDirection.INPUT) \
-        -> Optional[List[ProcessorState]]:
+        -> List[ProcessorState]:
 
-    connected_states =  storage.fetch_processor_state_route(
+    connected_states = storage.fetch_processor_state_route(
         processor_id=processor_id,
         direction=direction
     )
 
-    if not connected_states:
-        return []
-
-    return connected_states
+    return connected_states or []
 
 @processor_router.post("/{processor_id}/status/{status}")
 @check_null_response

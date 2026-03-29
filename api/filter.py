@@ -27,7 +27,6 @@ async def apply_filter_on_data(filter_id: str, data: Dict[str, str], user_id: st
     return storage.apply_filter_on_data(filter_id=filter_id, data=data)
 
 
-@check_null_response
 @filter_router.get("/user")
-async def fetch_filters_by_user(user_id: str = Depends(token_service.verify_jwt)) -> Optional[List[Filter]]:
-    return storage.fetch_filters_by_user(user_id=user_id)
+async def fetch_filters_by_user(user_id: str = Depends(token_service.verify_jwt)) -> List[Filter]:
+    return storage.fetch_filters_by_user(user_id=user_id) or []
