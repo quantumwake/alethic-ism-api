@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import List
 from fastapi import APIRouter, Depends
 from ismcore.model.base_model import MonitorLogEvent
 
