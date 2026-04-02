@@ -2,6 +2,7 @@ import asyncio
 import io
 import json
 import openpyxl
+from openpyxl.styles import Alignment
 import tempfile
 import os
 
@@ -40,7 +41,17 @@ def _write_excel_row(worksheet, row_index: int, row_data: dict, column_mapping: 
     excel_row = row_index + 2  # +2 for 1-based indexing and header row
     for col_name, col_value in row_data.items():
         if col_name in column_mapping:
-            worksheet.cell(row=excel_row, column=column_mapping[col_name], value=col_value)
+            cell = worksheet.cell(row=excel_row, column=column_mapping[col_name])
+            if isinstance(col_value, str) and col_value and col_value[0] in ('{', '['):
+                try:
+                    parsed = json.loads(col_value)
+                    cell.value = json.dumps(parsed, indent=2, ensure_ascii=False)
+                    cell.alignment = Alignment(wrap_text=True, vertical='top')
+                    cell.number_format = '@'
+                    continue
+                except (json.JSONDecodeError, ValueError):
+                    pass
+            cell.value = col_value
 
 
 def _process_chunk_rows(rows, worksheet, column_mapping: dict):
