@@ -36,6 +36,12 @@ metadata:
     nginx.ingress.kubernetes.io/cors-allow-methods: "PUT, GET, POST, DELETE"
     nginx.ingress.kubernetes.io/enable-cors: "true"
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
+    # block FastAPI auto-generated API documentation endpoints
+    nginx.ingress.kubernetes.io/server-snippet: |
+      location ~* ^/(docs|redoc|openapi\.(json|yaml|yml))(/.*)?$ {
+        return 404;
+      }
 spec:
   tls:
     - hosts:
