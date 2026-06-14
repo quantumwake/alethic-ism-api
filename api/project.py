@@ -81,6 +81,7 @@ async def fetch_project(project_id: str, user_id: str = Depends(token_service.ve
     return storage.fetch_user_project(project_id=project_id)
 
 
+@project_router.delete("/{project_id}")
 async def delete_project(project_id: str, user_id: str = Depends(token_service.verify_jwt)) -> bool:
     """
     Delete a project by its ID.
@@ -88,7 +89,7 @@ async def delete_project(project_id: str, user_id: str = Depends(token_service.v
     :param user_id: The ID of the user making the request.
     :return: True if the project was deleted successfully, otherwise False.
     """
-    return storage.delete_user_project(project_id=project_id)
+    return storage.soft_delete_project(project_id=project_id) > 0
 
 @project_router.get("/{project_id}/provider/processors")
 async def fetch_provider_processors(project_id: str) \
